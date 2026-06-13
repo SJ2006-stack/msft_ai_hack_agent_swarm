@@ -16,6 +16,12 @@ import type { AgentName } from "@/types/agents";
 
 const nodeTypes = { agent: AgentNode };
 
+type Props = {
+  agentStatuses: AgentStatuses;
+  selectedAgent?: AgentName | null;
+  onSelectAgent?: (agent: AgentName) => void;
+};
+
 const GRAPH_NODES: { id: AgentName; x: number; y: number }[] = [
   { id: "input_processor", x: 400, y: 0 },
   { id: "gtm_strategist", x: 400, y: 100 },
@@ -45,20 +51,24 @@ const GRAPH_EDGES: Edge[] = [
   { id: "e12", source: "outreach_planner", target: "report_assembler", animated: true },
 ];
 
-type Props = {
-  agentStatuses: AgentStatuses;
-};
-
-export function AgentFlowGraph({ agentStatuses }: Props) {
+export function AgentFlowGraph({
+  agentStatuses,
+  selectedAgent,
+  onSelectAgent,
+}: Props) {
   const nodes: Node<AgentNodeData>[] = useMemo(
     () =>
       GRAPH_NODES.map(({ id, x, y }) => ({
         id,
         type: "agent",
         position: { x, y },
-        data: { agent: id, status: agentStatuses[id] ?? "pending" },
+        data: {
+          agent: id,
+          status: agentStatuses[id] ?? "pending",
+          selected: selectedAgent === id,
+        },
       })),
-    [agentStatuses]
+    [agentStatuses, selectedAgent]
   );
 
   return (
@@ -73,6 +83,7 @@ export function AgentFlowGraph({ agentStatuses }: Props) {
         nodesConnectable={false}
         elementsSelectable={false}
         panOnScroll
+        onNodeClick={(_, node) => onSelectAgent?.(node.id as AgentName)}
       >
         <Background />
         <Controls showInteractive={false} />

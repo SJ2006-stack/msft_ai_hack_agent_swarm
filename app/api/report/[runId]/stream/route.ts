@@ -1,7 +1,13 @@
 import { NextRequest } from "next/server";
 import { getCloudflareContext } from "@opennextjs/cloudflare";
 import type { KVNamespace } from "@cloudflare/workers-types";
-import { getRun, getRunEvents, subscribeToRun, bindRunsKV } from "@/lib/runs/store";
+import {
+  getRun,
+  getRunEvents,
+  getRunLogs,
+  subscribeToRun,
+  bindRunsKV,
+} from "@/lib/runs/store";
 import { formatSSE } from "@/lib/agents/events";
 
 export const dynamic = "force-dynamic";
@@ -37,10 +43,11 @@ export async function GET(
   let unsubscribe: (() => void) | undefined;
   let poll: ReturnType<typeof setInterval> | undefined;
   let lastEventCount = 0;
+  let lastLogCount = 0;
 
   const stream = new ReadableStream({
     async start(controller) {
-      const pushEvents = async () => {
+      const pushBuffered = async () => {
         const events = await getRunEvents(runId);
         for (let i = lastEventCount; i < events.length; i++) {
           controller.enqueue(
@@ -48,9 +55,17 @@ export async function GET(
           );
         }
         lastEventCount = events.length;
+
+        const logs = await getRunLogs(runId);
+        for (let i = lastLogCount; i < logs.length; i++) {
+          controller.enqueue(
+            encoder.encode(formatSSE({ type: "agent_log", data: logs[i] }))
+          );
+        }
+        lastLogCount = logs.length;
       };
 
-      await pushEvents();
+      await pushBuffered();
 
       const current = await getRun(runId);
       if (current?.status === "done") {
@@ -75,29 +90,36 @@ export async function GET(
       }
 
       unsubscribe = subscribeToRun(runId, (event) => {
-        controller.enqueue(
-          encoder.encode(formatSSE({ type: "agent_status", data: event }))
-        );
-        lastEventCount += 1;
-
-        if (event.agent === "report_assembler" && event.status === "done") {
+        if (event.type === "status") {
           controller.enqueue(
-            encoder.encode(formatSSE({ type: "report_ready", data: { run_id: runId } }))
+            encoder.encode(formatSSE({ type: "agent_status", data: event.data }))
           );
-          controller.close();
-          unsubscribe?.();
-          if (poll) clearInterval(poll);
-        }
+          lastEventCount += 1;
 
-        if (event.status === "error") {
+          if (event.data.agent === "report_assembler" && event.data.status === "done") {
+            controller.enqueue(
+              encoder.encode(formatSSE({ type: "report_ready", data: { run_id: runId } }))
+            );
+            controller.close();
+            unsubscribe?.();
+            if (poll) clearInterval(poll);
+          }
+
+          if (event.data.status === "error") {
+            controller.enqueue(
+              encoder.encode(
+                formatSSE({
+                  type: "error",
+                  data: { message: event.data.error ?? "Agent error" },
+                })
+              )
+            );
+          }
+        } else {
           controller.enqueue(
-            encoder.encode(
-              formatSSE({
-                type: "error",
-                data: { message: event.error ?? "Agent error" },
-              })
-            )
+            encoder.encode(formatSSE({ type: "agent_log", data: event.data }))
           );
+          lastLogCount += 1;
         }
       });
 
@@ -109,7 +131,7 @@ export async function GET(
           return;
         }
 
-        await pushEvents();
+        await pushBuffered();
 
         if (latest.status === "done") {
           controller.enqueue(

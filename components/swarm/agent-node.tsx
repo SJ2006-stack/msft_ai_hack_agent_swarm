@@ -8,6 +8,7 @@ import { cn } from "@/lib/utils";
 export type AgentNodeData = {
   agent: AgentName;
   status: AgentStatus;
+  selected?: boolean;
 };
 
 const statusStyles: Record<AgentStatus, string> = {
@@ -30,8 +31,9 @@ function AgentNodeComponent({ data }: NodeProps & { data: AgentNodeData }) {
   return (
     <div
       className={cn(
-        "px-4 py-3 rounded-lg border-2 shadow-sm min-w-[160px] text-center text-sm font-medium transition-all duration-300",
-        statusStyles[data.status]
+        "px-4 py-3 rounded-lg border-2 shadow-sm min-w-[160px] text-center text-sm font-medium transition-all duration-300 cursor-pointer",
+        statusStyles[data.status],
+        data.selected && "ring-2 ring-blue-400 ring-offset-2 scale-105"
       )}
     >
       <Handle type="target" position={Position.Top} className="!bg-gray-400" />

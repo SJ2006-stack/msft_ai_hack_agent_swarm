@@ -8,7 +8,22 @@ export type AgentStatusEvent = {
   phase: 0 | 1 | 2 | 3 | 4 | 5;
   timestamp: string;
   error?: string;
+  output?: unknown;
+  summary?: string;
 };
+
+export type AgentLogEvent = {
+  run_id: string;
+  agent: AgentName;
+  level: "step" | "info" | "warn" | "error";
+  message: string;
+  detail?: string;
+  timestamp: string;
+};
+
+export type SwarmStreamEvent =
+  | { type: "status"; data: AgentStatusEvent }
+  | { type: "log"; data: AgentLogEvent };
 
 export function createAgentStatusEvent(
   runId: string,
@@ -28,6 +43,7 @@ export function createAgentStatusEvent(
 
 export type SSEEvent =
   | { type: "agent_status"; data: AgentStatusEvent }
+  | { type: "agent_log"; data: AgentLogEvent }
   | { type: "report_ready"; data: { run_id: string } }
   | { type: "error"; data: { message: string } };
 

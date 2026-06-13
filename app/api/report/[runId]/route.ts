@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { getCloudflareContext } from "@opennextjs/cloudflare";
 import type { KVNamespace } from "@cloudflare/workers-types";
 import { isMockLLM } from "@/lib/agents/tools/mock";
-import { bindRunsKV, getRun } from "@/lib/runs/store";
+import { bindRunsKV, getRun, getRunEvents, getRunLogs } from "@/lib/runs/store";
 
 function extractRunsKV(env: unknown): KVNamespace | null {
   const kv = (env as Record<string, unknown>).RUNS_KV;
@@ -40,19 +40,36 @@ export async function GET(
     }
 
     if (!run.state?.report) {
+      const [events, logs] = await Promise.all([
+        getRunEvents(runId),
+        getRunLogs(runId),
+      ]);
       return NextResponse.json(
-        { status: run.status, message: "Report not ready yet" },
+        {
+          status: run.status,
+          message: "Report not ready yet",
+          events,
+          logs,
+        },
         { status: 202 }
       );
     }
+
+    const [events, logs] = await Promise.all([
+      getRunEvents(runId),
+      getRunLogs(runId),
+    ]);
 
     return NextResponse.json({
       run_id: runId,
       status: run.status,
       report: run.state.report,
       agent_statuses: run.state.agent_statuses,
+      agent_outputs: run.agent_outputs ?? {},
       langsmith_trace_url: run.state.langsmith_trace_url,
       demo_mode: isMockLLM(),
+      events,
+      logs,
     });
   });
 }

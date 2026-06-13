@@ -3,6 +3,8 @@
 import { use } from "react";
 import Link from "next/link";
 import { AgentFlowGraph } from "@/components/swarm/agent-flow-graph";
+import { AgentActivityLog } from "@/components/swarm/agent-activity-log";
+import { AgentOutputExplorer } from "@/components/swarm/agent-output-explorer";
 import { ICPReportSection } from "@/components/report/icp";
 import { MarketsReportSection } from "@/components/report/markets";
 import { SignalsReportSection } from "@/components/report/signals";
@@ -17,8 +19,18 @@ export default function ReportPage({
   params: Promise<{ runId: string }>;
 }) {
   const { runId } = use(params);
-  const { agentStatuses, report, isComplete, error, langsmithTraceUrl, demoMode } =
-    useReportStream(runId);
+  const {
+    agentStatuses,
+    agentOutputs,
+    timeline,
+    report,
+    isComplete,
+    error,
+    langsmithTraceUrl,
+    demoMode,
+    selectedAgent,
+    setSelectedAgent,
+  } = useReportStream(runId);
 
   const doneCount = Object.values(agentStatuses).filter((s) => s === "done").length;
 
@@ -30,8 +42,8 @@ export default function ReportPage({
     : null;
 
   return (
-    <main className="min-h-screen p-6 max-w-6xl mx-auto space-y-8">
-      <header className="flex items-start justify-between gap-4">
+    <main className="min-h-screen p-6 max-w-7xl mx-auto space-y-8">
+      <header className="flex flex-wrap items-start justify-between gap-4">
         <div>
           <Link href="/" className="text-sm text-blue-600 hover:underline">
             ← Back
@@ -49,6 +61,11 @@ export default function ReportPage({
                 {demoMode ? "Demo" : "Live"}
               </span>
             )}
+            {!isComplete && (
+              <span className="px-2 py-0.5 rounded text-xs font-medium bg-blue-100 text-blue-800 animate-pulse">
+                Swarm active
+              </span>
+            )}
           </div>
           <p className="text-sm text-gray-500 mt-1">
             Run {runId.slice(0, 8)}… · {doneCount}/11 agents complete
@@ -56,23 +73,25 @@ export default function ReportPage({
             {generatedAt && ` · Generated ${generatedAt}`}
           </p>
         </div>
-        {langsmithTraceUrl && (
-          <a
-            href={langsmithTraceUrl}
-            target="_blank"
-            rel="noopener noreferrer"
-            className="text-xs text-gray-500 hover:text-blue-600 shrink-0"
-          >
-            LangSmith Trace ↗
-          </a>
-        )}
-        {report && (
-          <Button asChild variant="outline" className="shrink-0">
-            <a href={`/api/report/${runId}/export`} download="folder.zip">
-              Download folder.zip
+        <div className="flex flex-wrap items-center gap-2 shrink-0">
+          {langsmithTraceUrl && (
+            <a
+              href={langsmithTraceUrl}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="text-xs text-gray-500 hover:text-blue-600"
+            >
+              LangSmith Trace ↗
             </a>
-          </Button>
-        )}
+          )}
+          {report && (
+            <Button asChild variant="outline">
+              <a href={`/api/report/${runId}/export`} download="folder.zip">
+                Download folder.zip
+              </a>
+            </Button>
+          )}
+        </div>
       </header>
 
       {error && (
@@ -81,10 +100,31 @@ export default function ReportPage({
         </div>
       )}
 
-      <section>
-        <h2 className="text-lg font-semibold mb-3">Agent Swarm</h2>
-        <AgentFlowGraph agentStatuses={agentStatuses} />
-      </section>
+      <div className="grid lg:grid-cols-2 gap-6">
+        <section>
+          <h2 className="text-lg font-semibold mb-3">Agent Swarm</h2>
+          <AgentFlowGraph
+            agentStatuses={agentStatuses}
+            selectedAgent={selectedAgent}
+            onSelectAgent={setSelectedAgent}
+          />
+        </section>
+        <section>
+          <h2 className="text-lg font-semibold mb-3 sr-only">Activity Log</h2>
+          <AgentActivityLog
+            timeline={timeline}
+            selectedAgent={selectedAgent}
+            onSelectAgent={setSelectedAgent}
+          />
+        </section>
+      </div>
+
+      <AgentOutputExplorer
+        agentStatuses={agentStatuses}
+        agentOutputs={agentOutputs}
+        selectedAgent={selectedAgent}
+        onSelectAgent={setSelectedAgent}
+      />
 
       {report && (
         <div className="space-y-10 pt-4 border-t">
@@ -121,9 +161,9 @@ export default function ReportPage({
         </div>
       )}
 
-      {!report && !error && (
-        <div className="text-center py-12 text-gray-500">
-          <div className="animate-pulse">Agents are working...</div>
+      {!report && !error && timeline.length === 0 && (
+        <div className="text-center py-8 text-gray-500">
+          <div className="animate-pulse">Connecting to swarm stream…</div>
         </div>
       )}
     </main>

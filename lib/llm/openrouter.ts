@@ -1,5 +1,6 @@
 import { OpenRouter } from "@openrouter/sdk";
 import { isMockLLM } from "@/lib/agents/tools/mock";
+import { logAgent } from "@/lib/agents/agent-logger";
 import type { AgentName } from "@/types/agents";
 
 const DEFAULT_MODEL = "openrouter/free";
@@ -36,7 +37,10 @@ export async function callLLM(
     throw new Error("callLLM should not be called in MOCK_LLM mode");
   }
 
-  const model = process.env.OPENROUTER_MODEL ?? DEFAULT_MODEL;
+  const model = process.env["OPENROUTER_MODEL"] ?? DEFAULT_MODEL;
+  if (options?.agent) {
+    logAgent(options.agent, "info", `OpenRouter model: ${model}`);
+  }
   const openrouter = getOpenRouterClient();
 
   const stream = await openrouter.chat.send({
@@ -58,7 +62,9 @@ export async function callLLM(
 
   for await (const chunk of stream) {
     if (chunk.error) {
-      throw new Error(`OpenRouter error (${chunk.error.code}): ${chunk.error.message}`);
+      const msg = `OpenRouter error (${chunk.error.code}): ${chunk.error.message}`;
+      if (options?.agent) logAgent(options.agent, "error", "OpenRouter stream error", msg);
+      throw new Error(msg);
     }
 
     const content = chunk.choices[0]?.delta?.content;
@@ -77,6 +83,9 @@ export async function callLLM(
   }
 
   if (!response) {
+    if (options?.agent) {
+      logAgent(options.agent, "error", "OpenRouter returned an empty response");
+    }
     throw new Error("Empty response from OpenRouter");
   }
 

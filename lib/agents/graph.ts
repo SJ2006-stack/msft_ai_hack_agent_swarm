@@ -1,9 +1,10 @@
 import { Annotation, StateGraph, START, END, Send } from "@langchain/langgraph";
 import type { GTMReportState } from "@/lib/agents/state";
-import type { AgentStatusEvent } from "@/lib/agents/events";
+import type { SwarmStreamEvent } from "@/lib/agents/events";
+import { bindAgentLogger, clearAgentLogger } from "@/lib/agents/agent-logger";
 import { createInitialState } from "@/lib/agents/state";
 import type { GTMInput } from "@/types/gtm";
-import { wrapNode, runJoinResearch, runJoinQualify } from "@/lib/agents/orchestrator";
+import { wrapNode, runJoinResearch, runJoinQualify, type SwarmEmitter } from "@/lib/agents/orchestrator";
 import { runInputProcessor } from "@/lib/agents/nodes/input-processor";
 import { runGTMStrategist } from "@/lib/agents/nodes/gtm-strategist";
 import { runMarketMapper } from "@/lib/agents/nodes/market-mapper";
@@ -84,7 +85,7 @@ function doneStatus(agent: keyof AgentStatuses): Partial<AgentStatuses> {
   return { [agent]: "done" };
 }
 
-export function createSwarmGraph(emit?: (event: AgentStatusEvent) => void) {
+export function createSwarmGraph(emit?: SwarmEmitter) {
   const graph = new StateGraph(GTMStateAnnotation)
     .addNode("input_processor", async (state: GraphState) => {
       const s = fromGraphState(state);
@@ -171,12 +172,17 @@ export function createSwarmGraph(emit?: (event: AgentStatusEvent) => void) {
 export async function runSwarmGraph(
   runId: string,
   input: GTMInput,
-  emit?: (event: AgentStatusEvent) => void
+  emit?: SwarmEmitter
 ): Promise<GTMReportState> {
-  const graph = createSwarmGraph(emit);
-  const initial = toGraphState(createInitialState(runId, input));
-  const final = await graph.invoke(initial);
-  return fromGraphState(final);
+  bindAgentLogger(runId, (log) => emit?.({ type: "log", data: log }));
+  try {
+    const graph = createSwarmGraph(emit);
+    const initial = toGraphState(createInitialState(runId, input));
+    const final = await graph.invoke(initial);
+    return fromGraphState(final);
+  } finally {
+    clearAgentLogger();
+  }
 }
 
 /** LangGraph Studio entrypoint */

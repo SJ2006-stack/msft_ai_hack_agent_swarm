@@ -5,7 +5,8 @@ import type { KVNamespace } from "@cloudflare/workers-types";
 import { GTMInputSchema } from "@/types/gtm";
 import { runSwarmGraph } from "@/lib/agents/graph";
 import { isMockLLM } from "@/lib/agents/tools/mock";
-import { createRun, updateRun, appendEvent, bindRunsKV } from "@/lib/runs/store";
+import { createRun, updateRun, appendEvent, appendLog, bindRunsKV } from "@/lib/runs/store";
+import type { SwarmStreamEvent } from "@/lib/agents/events";
 
 export const maxDuration = 300;
 
@@ -49,8 +50,12 @@ export async function POST(request: NextRequest) {
 
     const pendingEvents: Promise<void>[] = [];
 
-    const runPromise = runSwarmGraph(runId, input, (event) => {
-      pendingEvents.push(appendEvent(runId, event));
+    const runPromise = runSwarmGraph(runId, input, (event: SwarmStreamEvent) => {
+      if (event.type === "status") {
+        pendingEvents.push(appendEvent(runId, event.data));
+      } else {
+        pendingEvents.push(appendLog(runId, event.data));
+      }
     })
       .then(async (finalState) => {
         await Promise.all(pendingEvents);

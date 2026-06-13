@@ -1,5 +1,6 @@
 import type { GTMReportState } from "@/lib/agents/state";
-import type { AgentStatusEvent } from "@/lib/agents/events";
+import type { AgentStatusEvent, AgentLogEvent, SwarmStreamEvent } from "@/lib/agents/events";
+import type { AgentOutputs } from "@/lib/export/agent-outputs";
 import { getCloudflareContext } from "@opennextjs/cloudflare";
 import type { KVNamespace } from "@cloudflare/workers-types";
 
@@ -9,17 +10,18 @@ export type RunRecord = {
   run_id: string;
   status: RunStatus;
   state?: GTMReportState;
+  agent_outputs?: AgentOutputs;
   events: AgentStatusEvent[];
+  logs: AgentLogEvent[];
   error?: string;
   created_at: string;
   updated_at: string;
 };
 
 const memoryRuns = new Map<string, RunRecord>();
-const memoryListeners = new Map<string, Set<(event: AgentStatusEvent) => void>>();
+const streamListeners = new Map<string, Set<(event: SwarmStreamEvent) => void>>();
 let boundKV: KVNamespace | null | undefined;
 
-/** Bind KV for the current request + waitUntil background work */
 export function bindRunsKV(kv: KVNamespace | null): void {
   boundKV = kv;
 }
@@ -58,9 +60,13 @@ async function readRun(runId: string): Promise<RunRecord | undefined> {
   const kv = await getRunsKV();
   if (kv) {
     const record = await kv.get(runKey(runId), "json");
-    return (record as RunRecord | null) ?? undefined;
+    const parsed = record as RunRecord | null;
+    if (parsed && !parsed.logs) parsed.logs = [];
+    return parsed ?? undefined;
   }
-  return memoryRuns.get(runId);
+  const mem = memoryRuns.get(runId);
+  if (mem && !mem.logs) mem.logs = [];
+  return mem;
 }
 
 async function writeRun(record: RunRecord): Promise<void> {
@@ -72,12 +78,22 @@ async function writeRun(record: RunRecord): Promise<void> {
   memoryRuns.set(record.run_id, record);
 }
 
+function notifyListeners(runId: string, event: SwarmStreamEvent): void {
+  const listeners = streamListeners.get(runId);
+  if (listeners) {
+    for (const listener of listeners) {
+      listener(event);
+    }
+  }
+}
+
 export async function createRun(runId: string): Promise<RunRecord> {
   const now = new Date().toISOString();
   const record: RunRecord = {
     run_id: runId,
     status: "pending",
     events: [],
+    logs: [],
     created_at: now,
     updated_at: now,
   };
@@ -112,32 +128,50 @@ export async function appendEvent(
   const run = await readRun(runId);
   if (run) {
     run.events.push(event);
+    if (event.status === "done" && event.output !== undefined) {
+      run.agent_outputs = {
+        ...run.agent_outputs,
+        [event.agent]: event.output,
+      };
+    }
     run.updated_at = new Date().toISOString();
     await writeRun(run);
   }
+  notifyListeners(runId, { type: "status", data: event });
+}
 
-  const listeners = memoryListeners.get(runId);
-  if (listeners) {
-    for (const listener of listeners) {
-      listener(event);
-    }
+export async function appendLog(
+  runId: string,
+  log: AgentLogEvent
+): Promise<void> {
+  const run = await readRun(runId);
+  if (run) {
+    run.logs.push(log);
+    run.updated_at = new Date().toISOString();
+    await writeRun(run);
   }
+  notifyListeners(runId, { type: "log", data: log });
 }
 
 export function subscribeToRun(
   runId: string,
-  listener: (event: AgentStatusEvent) => void
+  listener: (event: SwarmStreamEvent) => void
 ): () => void {
-  if (!memoryListeners.has(runId)) {
-    memoryListeners.set(runId, new Set());
+  if (!streamListeners.has(runId)) {
+    streamListeners.set(runId, new Set());
   }
-  memoryListeners.get(runId)!.add(listener);
+  streamListeners.get(runId)!.add(listener);
   return () => {
-    memoryListeners.get(runId)?.delete(listener);
+    streamListeners.get(runId)?.delete(listener);
   };
 }
 
 export async function getRunEvents(runId: string): Promise<AgentStatusEvent[]> {
   const run = await readRun(runId);
   return run?.events ?? [];
+}
+
+export async function getRunLogs(runId: string): Promise<AgentLogEvent[]> {
+  const run = await readRun(runId);
+  return run?.logs ?? [];
 }

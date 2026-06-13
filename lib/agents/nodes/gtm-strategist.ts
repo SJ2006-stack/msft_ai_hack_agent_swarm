@@ -1,24 +1,24 @@
 import type { GTMReportState } from "@/lib/agents/state";
 import { GTMStrategistOutputSchema } from "@/types/gtm";
-import { callLLM, parseJSONResponse } from "@/lib/llm/openrouter";
 import { GTM_STRATEGIST_SYSTEM } from "@/lib/agents/prompts";
 import { FIXTURE_GTM_STRATEGY } from "@/lib/fixtures/demo-slices";
-import { isMockLLM } from "@/lib/agents/tools/mock";
+import { executeLLMNode } from "@/lib/agents/llm-node";
 
 export async function runGTMStrategist(
   state: GTMReportState
 ): Promise<Partial<GTMReportState>> {
-  if (isMockLLM()) {
-    return { gtm_strategy: GTMStrategistOutputSchema.parse(FIXTURE_GTM_STRATEGY) };
-  }
-
-  const userPrompt = JSON.stringify({
-    company: state.input.company,
-    product: state.input.product,
-    website_content: state.website_content?.slice(0, 3000),
+  const gtm_strategy = await executeLLMNode({
+    agent: "gtm_strategist",
+    state,
+    schema: GTMStrategistOutputSchema,
+    systemPrompt: GTM_STRATEGIST_SYSTEM,
+    buildPrompt: (s) => ({
+      company: s.input.company,
+      product: s.input.product,
+      website_content: s.website_content?.slice(0, 3000),
+    }),
+    mapResult: (parsed) => ({ gtm_strategy: parsed }),
+    fixture: FIXTURE_GTM_STRATEGY,
   });
-
-  const raw = await callLLM(GTM_STRATEGIST_SYSTEM, userPrompt, { agent: "gtm_strategist" });
-  const parsed = GTMStrategistOutputSchema.parse(parseJSONResponse(raw));
-  return { gtm_strategy: parsed };
+  return gtm_strategy;
 }

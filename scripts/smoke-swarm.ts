@@ -6,7 +6,7 @@
 import { AGENT_NAMES } from "../types/agents";
 import { FIXTURE_INPUT } from "../lib/fixtures/demo-input";
 import { runSwarmGraph } from "../lib/agents/graph";
-import type { AgentStatusEvent } from "../lib/agents/events";
+import type { AgentLogEvent, AgentStatusEvent, SwarmStreamEvent } from "../lib/agents/events";
 
 async function main() {
   process.env.MOCK_LLM = process.env.MOCK_LLM ?? "true";
@@ -14,22 +14,30 @@ async function main() {
 
   const runId = `smoke-${Date.now()}`;
   const events: AgentStatusEvent[] = [];
+  const logs: AgentLogEvent[] = [];
   const start = Date.now();
 
   console.log(`\n🔥 Smoke test starting (run_id: ${runId})`);
   console.log(`   MOCK_LLM=${process.env.MOCK_LLM}\n`);
 
-  const finalState = await runSwarmGraph(runId, FIXTURE_INPUT, (event) => {
-    events.push(event);
-    const icon =
-      event.status === "done"
-        ? "✅"
-        : event.status === "running"
-          ? "🔄"
-          : event.status === "error"
-            ? "❌"
-            : "⏳";
-    console.log(`   ${icon} ${event.agent} → ${event.status}`);
+  const finalState = await runSwarmGraph(runId, FIXTURE_INPUT, (event: SwarmStreamEvent) => {
+    if (event.type === "status") {
+      events.push(event.data);
+      const icon =
+        event.data.status === "done"
+          ? "✅"
+          : event.data.status === "running"
+            ? "🔄"
+            : event.data.status === "error"
+              ? "❌"
+              : "⏳";
+      console.log(`   ${icon} ${event.data.agent} → ${event.data.status}`);
+    } else {
+      logs.push(event.data);
+      if (event.data.level === "error" || event.data.level === "warn") {
+        console.log(`   ⚠️  [${event.data.level}] ${event.data.agent}: ${event.data.message}`);
+      }
+    }
   });
 
   const elapsed = Date.now() - start;
@@ -42,6 +50,7 @@ async function main() {
 
   console.log(`\n📊 Results (${elapsed}ms):`);
   console.log(`   Agents done: ${doneAgents.length}/${AGENT_NAMES.length}`);
+  console.log(`   Log lines: ${logs.length}`);
   console.log(`   Report ready: ${finalState.report ? "yes" : "no"}`);
   console.log(
     `   Prospects: ${finalState.report?.prospects.length ?? 0}, Signals: ${finalState.report?.market_signals.length ?? 0}`
@@ -68,6 +77,11 @@ async function main() {
 
   if (!finalState.report) {
     console.error("\n❌ FAIL: no report generated");
+    passed = false;
+  }
+
+  if (logs.length < AGENT_NAMES.length) {
+    console.error(`\n❌ FAIL: expected agent logs, got ${logs.length}`);
     passed = false;
   }
 
