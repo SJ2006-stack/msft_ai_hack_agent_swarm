@@ -257,30 +257,67 @@ Upload Worker secrets separately with `pnpm cf:sync-secrets` (not stored in GitH
 | `pnpm cf:sync-secrets` | Push secrets from `.env.local` to Worker |
 | `pnpm cf:dev-vars` | Generate `.dev.vars` for local Wrangler preview |
 | `pnpm typecheck` | TypeScript check |
+| `pnpm test-node` | Test a single agent in isolation (`--agent gtm_strategist`) |
 
 ---
 
 ## Project structure
 
 ```
-app/
+app/                       # Next.js routes + API
   page.tsx                 # Landing + launch form
   report/[runId]/page.tsx  # Live swarm dashboard + GTM report
   api/report/              # Run, stream, export endpoints
+
 components/
   home/                    # Hero, stepper, graph preview, chat demo
   swarm/                   # Agent flow graph, activity log, inspector
   report/                  # ICP, markets, signals, prospects, outreach
-lib/
-  agents/                  # LangGraph graph, nodes, prompts, tools
+  ui/                      # shadcn primitives
+
+swarm/                     # LangGraph agent pipeline (start here for agents)
+  graph.ts                 # StateGraph wiring + parallel fan-out/fan-in
+  orchestrator.ts          # Node wrapper, joins, output extraction
+  state.ts / events.ts     # Shared graph state + SSE event types
+  agents/<name>/           # One folder per agent (node.ts + prompt.ts)
+  shared/                  # LLM node helper, logger, citations, validation
+  tools/                   # Tavily, Firecrawl, mock toggles
+
+server/                    # Backend services (not agent logic)
   llm/openrouter.ts        # OpenRouter streaming client
   runs/store.ts            # KV-backed run + SSE persistence
   export/                  # Per-agent JSON ZIP export
-types/                     # GTM schemas + agent definitions
-scripts/                   # Smoke test, Cloudflare secret sync
+
+fixtures/                  # Demo input + mock slices (non-production)
+types/                     # GTM Zod schemas + agent registry
+hooks/                     # Client hooks (report stream, scroll reveal)
+lib/utils.ts               # Shared UI utilities (cn, etc.)
+
+scripts/
+  dev/                     # smoke-swarm.ts, test-node.ts
+  deploy/                  # Cloudflare secret sync + dev vars
+
+infra/
+  langgraph.json           # LangGraph Studio entrypoint
+
+docs/                      # Architecture, agents, deployment guides
 wrangler.jsonc             # Cloudflare Worker + KV config
-langgraph.json             # LangGraph Studio entrypoint
 ```
+
+### Where do I change…?
+
+| Goal | Location |
+|------|----------|
+| Add or edit an agent | `swarm/agents/<agent-name>/` (`node.ts` + `prompt.ts`) |
+| Change graph topology | `swarm/graph.ts` |
+| UI for live run dashboard | `app/report/`, `components/swarm/`, `components/report/` |
+| API routes | `app/api/report/` |
+| Run persistence (KV) | `server/runs/store.ts` |
+| Deploy / secrets | `wrangler.jsonc`, `scripts/deploy/`, [docs/deployment-cloudflare.md](docs/deployment-cloudflare.md) |
+| Demo / mock data | `fixtures/` |
+| LangGraph Studio | `pnpm langgraph:dev` → `infra/langgraph.json` |
+
+See [docs/README.md](docs/README.md) for the full documentation index.
 
 ---
 
@@ -298,4 +335,11 @@ The business problem — *who should we sell to, why now, and how should we appr
 
 ---
 
-**Questions?** Open an issue on [GitHub](https://github.com/SJ2006-stack/msft_ai_hack_agent_swarm/issues) or try the live demo at [gtmaxxin.app](https://gtmaxxin.app).
+**Questions?** Open an issue on [GitHub](https://github.com/SJ2006-stack/msft_ai_hack_agent_swarm/issues) or try the live demo at [gtmaxxin.app](https://gtmaxxin.app). See [CONTRIBUTING.md](CONTRIBUTING.md) to hack on the swarm.
+
+---
+
+## License
+
+MIT — see [LICENSE](LICENSE).
+

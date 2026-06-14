@@ -19,7 +19,7 @@ MOCK_TOOLS=false
 
 ## Golden Fixture Run
 
-The golden fixture input is defined in `lib/fixtures/demo-input.ts`:
+The golden fixture input is defined in `fixtures/demo-input.ts`:
 
 - **Company:** B2B SaaS sales intelligence startup
 - **Product:** AI prospecting / GTM automation tool
