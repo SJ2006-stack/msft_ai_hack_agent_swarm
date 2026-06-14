@@ -48,6 +48,7 @@ export async function GET(
         {
           status: run.status,
           message: "Report not ready yet",
+          demo_mode: run.demo_mode ?? false,
           input: run.state?.input,
           website_content: run.state?.website_content ?? null,
           research_evidence: run.state?.research_evidence ?? null,

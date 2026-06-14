@@ -70,7 +70,7 @@ No install required.
 
 ### Option B — Clone and run locally
 
-**Prerequisites:** [Node.js 22+](https://nodejs.org/), [pnpm 9+](https://pnpm.io/installation)
+**Prerequisites:** [Node.js 22+](https://nodejs.org/) (Node 20 LTS also works), [pnpm 9+](https://pnpm.io/installation)
 
 ```bash
 # 1. Clone the repo
@@ -82,7 +82,7 @@ pnpm install
 
 # 3. Configure environment
 cp .env.example .env.local
-# Edit .env.local — at minimum set OPENROUTER_API_KEY (see below)
+# Edit .env.local — at minimum set OPENROUTERAPIKEY1 (see below)
 
 # 4. Start the dev server
 pnpm dev
@@ -98,7 +98,8 @@ Validates all 11 agents, parallel joins, and Zod output contracts without openin
 # Fast stub run (~5s) — no API keys needed
 MOCK_LLM=true pnpm smoke
 
-# Full run with real LLMs (~2–3 min) — requires OPENROUTER_API_KEY
+# Full run with real LLMs (~2–3 min) — requires OPENROUTERAPIKEY1
+set -a && source .env.local && set +a
 MOCK_LLM=false MOCK_TOOLS=false pnpm smoke
 ```
 
@@ -127,10 +128,40 @@ See [Deploy to Cloudflare Workers](#deploy-to-cloudflare-workers). You need a Cl
 
 Copy [`.env.example`](.env.example) to `.env.local`. Never commit secrets.
 
+### OpenRouter (LLM)
+
+Each of the 11 agents gets its own **model slot** (`OPENROUTERMODEL1`–`OPENROUTERMODEL11`). A single **API key** (`OPENROUTERAPIKEY1`) is shared across all agents by default.
+
 | Variable | Required | Description |
 |----------|----------|-------------|
-| `OPENROUTER_API_KEY` | **Yes** (real runs) | [OpenRouter](https://openrouter.ai/) API key |
-| `OPENROUTER_MODEL` | No | Default: `openrouter/free` (auto-selects free models) |
+| `OPENROUTERAPIKEY1` | **Yes** (real runs) | [OpenRouter](https://openrouter.ai/) API key — used by every agent |
+| `OPENROUTERAPIKEY2`–`11` | No | Optional extra keys for key failover |
+| `OPENROUTERMODEL1`–`11` | No | Per-agent model slugs (defaults in `wrangler.jsonc` / `.env.example`) |
+
+Legacy names `OPENROUTER_API_KEY` and `OPENROUTER_MODEL` still map to slot 1 for backward compatibility.
+
+**Per-agent model slots** (override via `OPENROUTERMODEL{n}`):
+
+| Slot | Agent | Default model |
+|------|-------|---------------|
+| 1 | Input Processor | `liquid/lfm-2.5-1.2b-instruct:free` |
+| 2 | GTM Strategist | `liquid/lfm-2.5-1.2b-thinking:free` |
+| 3 | Market Mapper | `openai/gpt-oss-20b:free` |
+| 4 | Signal Hunter | `nvidia/nemotron-3.5-content-safety:free` |
+| 5 | Research Join | `openai/gpt-oss-20b:free` |
+| 6 | Prospect Discovery | `nvidia/nemotron-nano-12b-v2-vl:free` |
+| 7 | Decision Maker Finder | `nvidia/nemotron-nano-9b-v2:free` |
+| 8 | Opportunity Scorer | `nvidia/nemotron-nano-12b-v2-vl:free` |
+| 9 | Qualify Join | `openai/gpt-oss-120b:free` |
+| 10 | Outreach Planner | `openai/gpt-oss-120b:free` |
+| 11 | Report Assembler | `liquid/lfm-2.5-1.2b-instruct:free` |
+
+The LLM client (`server/llm/client.ts`) calls OpenRouter's chat API directly with per-agent model chains and automatic model/key failover.
+
+### Tools & tracing
+
+| Variable | Required | Description |
+|----------|----------|-------------|
 | `FIRECRAWL_API_KEY` | No | Website scraping — falls back to mock when `MOCK_TOOLS=true` |
 | `TAVILY_API_KEY` | No | Web search for signals & prospects |
 | `LANGCHAIN_TRACING_V2` | No | Set `true` to enable LangSmith tracing |
@@ -139,7 +170,7 @@ Copy [`.env.example`](.env.example) to `.env.local`. Never commit secrets.
 | `MOCK_LLM` | No | `true` = stub LLM responses (fast dev / CI) |
 | `MOCK_TOOLS` | No | `true` = stub Firecrawl & Tavily |
 
-**Minimum for a real demo:** `OPENROUTER_API_KEY` with `MOCK_LLM=false` and `MOCK_TOOLS=false`. Tool keys improve research quality but are optional.
+**Minimum for a real demo:** `OPENROUTERAPIKEY1` with `MOCK_LLM=false` and `MOCK_TOOLS=false`. Tool keys improve research quality but are optional.
 
 ---
 
@@ -189,7 +220,7 @@ Runs emit **SSE stream events** (agent status + logs) persisted to **Cloudflare 
 |-------|------------|
 | **Frontend** | Next.js 15, React 19, Tailwind CSS 4, shadcn/ui, React Flow, Framer Motion |
 | **Agent orchestration** | LangGraph, LangSmith (optional tracing) |
-| **LLM routing** | OpenRouter (`@openrouter/sdk`) |
+| **LLM routing** | OpenRouter REST API — per-agent models, fetch-based client |
 | **Research tools** | Firecrawl (scrape), Tavily (search) |
 | **Run persistence** | Cloudflare KV (`RUNS_KV`) |
 | **Deployment** | OpenNext + Cloudflare Workers (`@opennextjs/cloudflare`, Wrangler) |
@@ -207,7 +238,7 @@ Production runs on **Cloudflare Workers** with OpenNext. CI deploys on push to `
 2. Create a **KV namespace** for run storage and note its ID
 3. Update [`wrangler.jsonc`](wrangler.jsonc):
    - Set `kv_namespaces[0].id` to your KV namespace ID
-   - Adjust `vars` as needed (`MOCK_LLM`, `MOCK_TOOLS`, `OPENROUTER_MODEL`)
+   - Adjust `vars` as needed (`MOCK_LLM`, `MOCK_TOOLS`, `OPENROUTERMODEL1`–`11`)
 4. Create an [OpenRouter API key](https://openrouter.ai/keys)
 
 ### Deploy from your machine
@@ -215,13 +246,22 @@ Production runs on **Cloudflare Workers** with OpenNext. CI deploys on push to `
 ```bash
 pnpm install
 
-# Sync secrets from .env.local to the Worker
+# Configure secrets locally
 cp .env.example .env.local
-# Fill in OPENROUTER_API_KEY (and optional tool keys)
+# Fill in OPENROUTERAPIKEY1 (and optional tool keys)
+
+# Sync secrets to the Worker (required before first deploy)
 pnpm cf:sync-secrets
 
-# Build and deploy
+# Refresh local Wrangler vars, then build and deploy
+pnpm cf:dev-vars
 pnpm deploy
+```
+
+If a build fails with stale cache errors, clean artifacts first:
+
+```bash
+rm -rf .open-next .next && pnpm deploy
 ```
 
 For local Cloudflare preview (closer to production):
@@ -240,7 +280,7 @@ For automated deploys, add these repository secrets:
 | `CLOUDFLARE_API_TOKEN` | Worker deploy token |
 | `CLOUDFLARE_ACCOUNT_ID` | Cloudflare account ID |
 
-Upload Worker secrets separately with `pnpm cf:sync-secrets` (not stored in GitHub).
+Upload Worker secrets separately with `pnpm cf:sync-secrets` (not stored in GitHub). The deploy step requires `OPENROUTERAPIKEY1` to be set on the Worker before `pnpm deploy` succeeds.
 
 ---
 
@@ -284,7 +324,10 @@ swarm/                     # LangGraph agent pipeline (start here for agents)
   tools/                   # Tavily, Firecrawl, mock toggles
 
 server/                    # Backend services (not agent logic)
-  llm/openrouter.ts        # OpenRouter streaming client
+  llm/client.ts            # OpenRouter fetch client + streaming
+  llm/keys.ts              # Per-agent API key slots + failover
+  llm/models.ts            # Per-agent model slots + failover
+  llm/tracing.ts           # LangSmith URL helper
   runs/store.ts            # KV-backed run + SSE persistence
   export/                  # Per-agent JSON ZIP export
 
@@ -310,6 +353,7 @@ wrangler.jsonc             # Cloudflare Worker + KV config
 |------|----------|
 | Add or edit an agent | `swarm/agents/<agent-name>/` (`node.ts` + `prompt.ts`) |
 | Change graph topology | `swarm/graph.ts` |
+| Per-agent LLM model or key | `server/llm/models.ts`, `server/llm/keys.ts`, `wrangler.jsonc` |
 | UI for live run dashboard | `app/report/`, `components/swarm/`, `components/report/` |
 | API routes | `app/api/report/` |
 | Run persistence (KV) | `server/runs/store.ts` |
@@ -328,6 +372,7 @@ GTMaxxin demonstrates **true multi-agent orchestration**, not a single prompt ch
 - **Specialized agents** — each node owns one GTM task with its own system prompt and JSON schema
 - **Shared state** — LangGraph `Annotation` reducers merge outputs across the pipeline
 - **Parallel execution** — `Send` API fans out research and qualification branches, then joins synchronize
+- **Per-agent LLM routing** — 11 free OpenRouter models with automatic failover, not one shared prompt
 - **Observable swarm** — real-time status, logs, React Flow graph, and optional LangSmith traces
 - **Production edge deployment** — full Next.js app + long-running swarm on Cloudflare Workers with KV persistence
 
@@ -342,4 +387,3 @@ The business problem — *who should we sell to, why now, and how should we appr
 ## License
 
 MIT — see [LICENSE](LICENSE).
-

@@ -29,15 +29,7 @@ h1, h2, h3, h4, h5, h6 {
   font-weight: 800;
 }
 
-/* Brutalist Custom Styles */
-.brutalist-border {
-  border: 4px solid #0A0A0A;
-}
-
-.brutalist-border-thick {
-  border: 8px solid #0A0A0A;
-}
-
+/* Brutalist shadows & button hovers */
 .brutalist-shadow {
   box-shadow: 6px 6px 0px 0px #0A0A0A;
 }
@@ -79,11 +71,7 @@ h1, h2, h3, h4, h5, h6 {
   box-shadow: 4px 4px 0px 0px #FCD116;
 }
 
-/* ==========================================
-   BRUTALIST GTM INTELLIGENCE REPORT STYLING
-   ========================================== */
-
-/* Overrides for child components in report details */
+/* Report section overrides inside .brutalist-report */
 .brutalist-report {
   color: #0A0A0A !important;
 }
@@ -161,58 +149,22 @@ h1, h2, h3, h4, h5, h6 {
   border-width: 2px !important;
 }
 
-
-
-/* Explorer tab outputs overrides */
 .brutalist-report-explorer section {
   border: 4px solid #0A0A0A !important;
   background-color: #ffffff !important;
   color: #0A0A0A !important;
-  border-radius: 0px !important;
-  box-shadow: 6px 6px 0px 0px #0A0A0A !important;
-}
-
-.brutalist-report-explorer .border-b,
-.brutalist-report-explorer .border-neutral-800 {
-  border-color: #0A0A0A !important;
-}
-
-.brutalist-report-explorer .bg-neutral-900\/80 {
-  background-color: #ffffff !important;
-  border-bottom: 4px solid #0A0A0A !important;
-}
-
-.brutalist-report-explorer .bg-neutral-900\/40 {
-  background-color: #ffffff !important;
-}
-
-.brutalist-report-explorer h2,
-.brutalist-report-explorer h3,
-.brutalist-report-explorer font-semibold {
-  color: #0A0A0A !important;
-  font-family: var(--font-syne), sans-serif;
-  text-transform: uppercase;
-}
-
-.brutalist-report-explorer button {
-  border-radius: 0px !important;
-}
-
-.brutalist-report-explorer button.bg-neutral-800 {
-  background-color: #FCD116 !important;
-  color: #0A0A0A !important;
-  border: 2px solid #0A0A0A !important;
-  font-weight: 800;
+  border-radius: 0 !important;
+  box-shadow: 6px 6px 0 0 #0A0A0A !important;
 }
 
 .brutalist-report-explorer pre {
   background-color: #0A0A0A !important;
-  color: #86EFAC !important; /* green text for raw JSON output */
+  color: #86efac !important;
   border: 4px solid #0A0A0A !important;
-  border-radius: 0px !important;
+  border-radius: 0 !important;
 }
 
-/* Infinite Marquee for Core Engine Cards */
+/* Marquee */
 @keyframes marquee-scroll {
   0% {
     transform: translateX(0);

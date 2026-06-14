@@ -1,7 +1,7 @@
 import { z } from "zod";
 import type { GTMReportState } from "@/swarm/state";
 import { GTMReportSchema } from "@/types/gtm";
-import { getLangSmithTraceUrl } from "@/server/llm/openrouter";
+import { getLangSmithTraceUrl } from "@/server/llm/tracing";
 import { REPORT_ASSEMBLER_SYSTEM } from "./prompt";
 import { buildFixtureReport } from "@/fixtures/demo-slices";
 import { executeLLMNode } from "@/swarm/shared/llm-node";

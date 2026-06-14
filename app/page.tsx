@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
+import { motion } from "motion/react";
 import { Zap, ArrowRight } from "lucide-react";
 import { FIXTURE_INPUT } from "@/fixtures/demo-input";
 import { MeshGradient } from "@/components/ui/mesh-gradient";
@@ -10,11 +11,10 @@ import { SwarmCycleMarquee } from "@/components/home/swarm-cycle-marquee";
 import { SwarmSetupStepper } from "@/components/home/swarm-setup-stepper";
 import { SwarmChatDemo } from "@/components/home/swarm-chat-demo";
 import { SwarmGraphPreview } from "@/components/home/swarm-graph-preview";
+import { springSnappy } from "@/lib/motion-presets";
 
 type PresetInput = { company: string; product: string; url: string };
 
-// Pre-baked showcase companies. These match the server-side demo datasets and
-// replay instantly (no LLM), so the demo is fast and deterministic.
 const DEMO_PRESETS: { id: string; label: string; tagline: string; input: PresetInput }[] = [
   {
     id: "microsoft",
@@ -90,8 +90,8 @@ export default function HomePage() {
         throw new Error(data.error ?? "Failed to start run");
       }
 
-      const { run_id } = await res.json();
-      router.push(`/report/${run_id}`);
+      const { run_id, demo_mode } = await res.json();
+      router.push(demo_mode ? `/report/${run_id}?demo=1` : `/report/${run_id}`);
     } catch (err) {
       setError(err instanceof Error ? err.message : "Something went wrong");
       setLoading(false);
@@ -112,40 +112,49 @@ export default function HomePage() {
 
   return (
     <div className="min-h-screen bg-[#FCD116] flex flex-col">
-      {/* Hero */}
       <section className="relative border-b-4 border-black overflow-hidden">
         <MeshGradient variant="hero" />
         <div className="relative z-10 p-6 md:p-12 lg:p-16">
           <ScrollReveal>
             <div className="max-w-6xl mx-auto grid lg:grid-cols-2 gap-10 lg:gap-16 items-center">
               <div className="space-y-6">
-                <p className="text-xs font-black uppercase tracking-widest text-neutral-700">
-                  GTMaxxin · 11 Agents
+                <p className="text-xs font-semibold uppercase tracking-wide text-neutral-700">
+                  11 agents · LangGraph
                 </p>
                 <h1 className="text-4xl sm:text-5xl md:text-6xl font-black uppercase leading-none tracking-tighter text-[#0A0A0A]">
                   GTM
                   <br />
                   <span className="inline-block rotate-180 origin-center">Maxxin</span>
                 </h1>
-                <p className="text-sm md:text-base font-bold text-neutral-800 max-w-md leading-relaxed">
-                  Describe your company and product — eleven AI agents map markets, hunt
-                  signals, qualify prospects, and draft outreach in minutes.
+                <p className="text-sm md:text-base font-medium text-neutral-800 max-w-md leading-relaxed">
+                  Describe your company and product. Agents map markets, find signals,
+                  qualify prospects, and draft outreach.
                 </p>
-                <div className="flex flex-wrap gap-2 text-xs font-black">
-                  <span className="bg-black text-[#FCD116] px-3 py-1.5 border-2 border-black flex items-center gap-1.5">
-                    <span className="w-2 h-2 bg-green-500 rounded-full animate-pulse" />
-                    GTMAXXIN READY
-                  </span>
-                  <a
-                    href="#architecture-section"
-                    className="bg-white text-black px-3 py-1.5 border-2 border-black brutalist-shadow hover:translate-x-[-1px] hover:translate-y-[-1px] transition-transform"
+                <div className="flex flex-wrap gap-2 text-xs font-semibold">
+                  <motion.span
+                    initial={{ opacity: 0, x: -8 }}
+                    animate={{ opacity: 1, x: 0 }}
+                    transition={{ ...springSnappy, delay: 0.15 }}
+                    className="bg-black text-[#FCD116] px-3 py-1.5 border-2 border-black flex items-center gap-1.5"
                   >
-                    VIEW GRAPH
-                  </a>
+                    <motion.span
+                      className="w-2 h-2 bg-green-500 rounded-full"
+                      animate={{ scale: [1, 1.25, 1], opacity: [1, 0.6, 1] }}
+                      transition={{ duration: 1.4, repeat: Infinity }}
+                    />
+                    Ready
+                  </motion.span>
+                  <motion.a
+                    href="#architecture-section"
+                    whileHover={{ x: -2, y: -2 }}
+                    transition={springSnappy}
+                    className="bg-white text-black px-3 py-1.5 border-2 border-black brutalist-shadow"
+                  >
+                    See the graph
+                  </motion.a>
                 </div>
               </div>
 
-              {/* Launch form */}
               <ScrollReveal delay={100}>
                 <div
                   id="launch-form"
@@ -153,46 +162,40 @@ export default function HomePage() {
                 >
                   <div className="mb-4 space-y-2">
                     <div className="flex flex-wrap items-center justify-between gap-3">
-                      <h2 className="text-lg font-black uppercase tracking-tight text-[#0A0A0A]">
-                        Launch GTMaxxin
-                      </h2>
+                      <h2 className="text-lg font-bold text-[#0A0A0A]">New run</h2>
                       <button
                         type="button"
                         onClick={loadDemoInput}
-                        className="border-2 border-black bg-white px-3 py-1 text-[10px] font-black uppercase tracking-wide text-[#0A0A0A] transition-colors hover:bg-black hover:text-[#FCD116]"
+                        className="border-2 border-black bg-white px-3 py-1 text-xs font-semibold text-[#0A0A0A] transition-colors hover:bg-black hover:text-[#FCD116]"
                       >
-                        Load demo
+                        Fill sample
                       </button>
                     </div>
-                    <p className="text-[10px] font-black uppercase tracking-wide text-neutral-500">
-                      Instant demo — pick a company
-                    </p>
+                    <p className="text-xs text-neutral-500">Or pick a demo company</p>
                     <div className="grid grid-cols-3 gap-2">
-                      {DEMO_PRESETS.map((preset) => (
-                        <button
+                      {DEMO_PRESETS.map((preset, i) => (
+                        <motion.button
                           key={preset.id}
                           type="button"
+                          initial={{ opacity: 0, y: 10 }}
+                          animate={{ opacity: 1, y: 0 }}
+                          transition={{ ...springSnappy, delay: 0.08 * i }}
+                          whileHover={{ x: -2, y: -2 }}
+                          whileTap={{ scale: 0.98 }}
                           onClick={() => launchPreset(preset.input)}
                           disabled={loading}
                           className="flex flex-col items-start border-2 border-black bg-[#FCD116] px-2.5 py-1.5 text-left transition-colors hover:bg-black hover:text-[#FCD116] disabled:cursor-not-allowed disabled:opacity-50"
                         >
-                          <span className="text-xs font-black uppercase tracking-tight">
-                            {preset.label}
-                          </span>
-                          <span className="text-[9px] font-bold uppercase tracking-wide opacity-70">
-                            {preset.tagline}
-                          </span>
-                        </button>
+                          <span className="text-xs font-bold">{preset.label}</span>
+                          <span className="text-[9px] font-medium opacity-70">{preset.tagline}</span>
+                        </motion.button>
                       ))}
                     </div>
                   </div>
 
                   <form onSubmit={handleSubmit} className="space-y-4">
                     <div className="space-y-1.5">
-                      <label
-                        htmlFor="company"
-                        className="block text-xs font-black uppercase tracking-wider text-[#0A0A0A]"
-                      >
+                      <label htmlFor="company" className="block text-xs font-semibold text-[#0A0A0A]">
                         Company
                       </label>
                       <textarea
@@ -202,15 +205,12 @@ export default function HomePage() {
                         required
                         rows={2}
                         placeholder="B2B SaaS sales intelligence startup…"
-                        className="w-full border-4 border-black bg-white px-3 py-2 text-sm font-medium text-[#0A0A0A] placeholder:text-neutral-400 focus:outline-none"
+                        className="w-full border-4 border-black bg-white px-3 py-2 text-sm text-[#0A0A0A] placeholder:text-neutral-400 focus:outline-none"
                       />
                     </div>
 
                     <div className="space-y-1.5">
-                      <label
-                        htmlFor="product"
-                        className="block text-xs font-black uppercase tracking-wider text-[#0A0A0A]"
-                      >
+                      <label htmlFor="product" className="block text-xs font-semibold text-[#0A0A0A]">
                         Product
                       </label>
                       <textarea
@@ -220,17 +220,13 @@ export default function HomePage() {
                         required
                         rows={3}
                         placeholder="AI prospecting and GTM automation tool…"
-                        className="w-full border-4 border-black bg-white px-3 py-2 text-sm font-medium text-[#0A0A0A] placeholder:text-neutral-400 focus:outline-none"
+                        className="w-full border-4 border-black bg-white px-3 py-2 text-sm text-[#0A0A0A] placeholder:text-neutral-400 focus:outline-none"
                       />
                     </div>
 
                     <div className="space-y-1.5">
-                      <label
-                        htmlFor="url"
-                        className="block text-xs font-black uppercase tracking-wider text-[#0A0A0A]"
-                      >
-                        Website{" "}
-                        <span className="font-bold normal-case text-neutral-600">(optional)</span>
+                      <label htmlFor="url" className="block text-xs font-semibold text-[#0A0A0A]">
+                        Website <span className="font-normal text-neutral-600">(optional)</span>
                       </label>
                       <input
                         id="url"
@@ -238,33 +234,36 @@ export default function HomePage() {
                         value={url}
                         onChange={(e) => setUrl(e.target.value)}
                         placeholder="https://example.com"
-                        className="w-full border-4 border-black bg-white px-3 py-2 text-sm font-medium text-[#0A0A0A] placeholder:text-neutral-400 focus:outline-none"
+                        className="w-full border-4 border-black bg-white px-3 py-2 text-sm text-[#0A0A0A] placeholder:text-neutral-400 focus:outline-none"
                       />
                     </div>
 
                     {error && (
-                      <p className="border-2 border-red-700 bg-red-100 px-3 py-2 text-xs font-bold text-red-800">
+                      <p className="border-2 border-red-700 bg-red-100 px-3 py-2 text-xs font-medium text-red-800">
                         {error}
                       </p>
                     )}
 
-                    <button
+                    <motion.button
                       type="submit"
                       disabled={loading}
-                      className="flex w-full items-center justify-center gap-2 border-4 border-black bg-[#0A0A0A] py-3 text-sm font-black uppercase tracking-wide text-[#FCD116] brutalist-shadow brutalist-btn-hover-yellow disabled:cursor-not-allowed disabled:opacity-50"
+                      whileHover={{ x: -2, y: -2 }}
+                      whileTap={{ scale: 0.99 }}
+                      transition={springSnappy}
+                      className="flex w-full items-center justify-center gap-2 border-4 border-black bg-[#0A0A0A] py-3 text-sm font-semibold text-[#FCD116] brutalist-shadow brutalist-btn-hover-yellow disabled:cursor-not-allowed disabled:opacity-50"
                     >
                       {loading ? (
                         <>
                           <span className="inline-block h-4 w-4 animate-spin rounded-full border-2 border-[#FCD116] border-t-transparent" />
-                          Starting GTMaxxin…
+                          Starting…
                         </>
                       ) : (
                         <>
                           <Zap className="h-4 w-4 fill-current" />
-                          Launch GTMaxxin
+                          Run swarm
                         </>
                       )}
-                    </button>
+                    </motion.button>
                   </form>
                 </div>
               </ScrollReveal>
@@ -281,27 +280,26 @@ export default function HomePage() {
 
       <SwarmGraphPreview />
 
-      {/* Bottom CTA */}
       <section className="grid md:grid-cols-2 border-b-4 border-black">
         <ScrollReveal className="p-8 md:p-12 bg-[#0A0A0A] text-[#FCD116] border-b-4 md:border-b-0 md:border-r-4 border-black flex flex-col justify-between space-y-8">
           <h3 className="text-3xl sm:text-4xl font-black uppercase tracking-tighter leading-none text-white">
-            Daring,
+            GTM research,
             <br />
-            Avant-Garde,
+            without the
             <br />
-            Automated.
+            spreadsheet sprint.
           </h3>
           <div className="space-y-4">
-            <p className="text-sm leading-relaxed text-neutral-300 font-medium">
-              GTMaxxin coordinates distinct AI roles over LangGraph state — compiling
-              structured target maps at developer speed.
+            <p className="text-sm leading-relaxed text-neutral-300">
+              Each agent owns one step. Shared state keeps outputs aligned from ICP
+              through outreach.
             </p>
             <button
               type="button"
               onClick={scrollToLaunchForm}
-              className="bg-[#FCD116] text-black font-black uppercase text-sm border-2 border-black px-6 py-3 brutalist-shadow brutalist-btn-hover flex items-center gap-2"
+              className="bg-[#FCD116] text-black font-semibold text-sm border-2 border-black px-6 py-3 brutalist-shadow brutalist-btn-hover flex items-center gap-2"
             >
-              Start GTMaxxin engine
+              Start a run
               <ArrowRight className="w-4 h-4 stroke-[3]" />
             </button>
           </div>
@@ -309,33 +307,29 @@ export default function HomePage() {
 
         <ScrollReveal delay={120} className="p-8 md:p-12 bg-white text-[#0A0A0A] flex flex-col justify-between space-y-8">
           <div className="space-y-4">
-            <span className="text-xs font-black text-neutral-500 uppercase tracking-widest block">
-              GTMaxxin performance telemetry
+            <span className="text-xs font-semibold text-neutral-500 uppercase tracking-wide block">
+              Pipeline
             </span>
-            <p className="text-xl font-black uppercase leading-tight">
-              Shared graph state prevents model drift and ensures high-fit prospect matches.
+            <p className="text-xl font-bold leading-tight">
+              Parallel research branches merge before prospect scoring and outreach.
             </p>
           </div>
           <div className="grid grid-cols-2 gap-4 border-t-2 border-black pt-6">
             <div>
               <p className="text-4xl font-black">11</p>
-              <p className="text-xs text-neutral-500 font-bold uppercase mt-1">
-                Autonomous agent roles
-              </p>
+              <p className="text-xs text-neutral-500 mt-1">Agents</p>
             </div>
             <div>
               <p className="text-4xl font-black">5</p>
-              <p className="text-xs text-neutral-500 font-bold uppercase mt-1">
-                Pipeline stages
-              </p>
+              <p className="text-xs text-neutral-500 mt-1">Stages</p>
             </div>
           </div>
         </ScrollReveal>
       </section>
 
-      <footer className="bg-[#0A0A0A] text-neutral-500 border-t-4 border-black p-8 text-center text-xs font-bold">
-        <p className="text-white font-black text-sm uppercase">GTMaxxin</p>
-        <p className="text-[10px] text-neutral-600 mt-1">
+      <footer className="bg-[#0A0A0A] text-neutral-500 border-t-4 border-black p-8 text-center text-xs">
+        <p className="text-white font-semibold text-sm">GTMaxxin</p>
+        <p className="text-neutral-600 mt-1">
           © {new Date().getFullYear()} · Next.js, LangGraph & Tailwind
         </p>
       </footer>

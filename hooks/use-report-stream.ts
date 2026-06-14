@@ -7,6 +7,7 @@ import type { AgentStatuses } from "@/types/agents";
 import { AGENT_NAMES, createInitialAgentStatuses, type AgentName } from "@/types/agents";
 import type { ResearchEvidence } from "@/swarm/state";
 import type { GTMInput, GTMReport } from "@/types/gtm";
+import { DemoStreamPacer, type DemoStreamItem } from "@/hooks/demo-stream-pacer";
 
 export type TimelineEntry =
   | { kind: "status"; timestamp: string; data: AgentStatusEvent }
@@ -20,6 +21,10 @@ type RunContextPayload = {
   input?: GTMInput;
   website_content?: string | null;
   research_evidence?: RunResearchEvidence | null;
+};
+
+type UseReportStreamOptions = {
+  demoHint?: boolean;
 };
 
 type UseReportStreamResult = {
@@ -83,39 +88,6 @@ function logKey(log: AgentLogEvent): string {
   return `${log.timestamp}:${log.agent}:${log.level}:${log.message}`;
 }
 
-function mergeEvents(
-  prev: AgentStatusEvent[],
-  incoming: AgentStatusEvent[]
-): AgentStatusEvent[] {
-  const seen = new Set(prev.map(statusKey));
-  const merged = [...prev];
-  for (const event of incoming) {
-    const key = statusKey(event);
-    if (!seen.has(key)) {
-      seen.add(key);
-      merged.push(event);
-    }
-  }
-  return merged.sort(
-    (a, b) => new Date(a.timestamp).getTime() - new Date(b.timestamp).getTime()
-  );
-}
-
-function mergeLogs(prev: AgentLogEvent[], incoming: AgentLogEvent[]): AgentLogEvent[] {
-  const seen = new Set(prev.map(logKey));
-  const merged = [...prev];
-  for (const log of incoming) {
-    const key = logKey(log);
-    if (!seen.has(key)) {
-      seen.add(key);
-      merged.push(log);
-    }
-  }
-  return merged.sort(
-    (a, b) => new Date(a.timestamp).getTime() - new Date(b.timestamp).getTime()
-  );
-}
-
 function applyStatusEvent(
   event: AgentStatusEvent,
   setAgentStatuses: Dispatch<SetStateAction<AgentStatuses>>,
@@ -139,7 +111,10 @@ function applyStatusEvent(
   }
 }
 
-export function useReportStream(runId: string): UseReportStreamResult {
+export function useReportStream(
+  runId: string,
+  options: UseReportStreamOptions = {}
+): UseReportStreamResult {
   const [agentStatuses, setAgentStatuses] = useState<AgentStatuses>(
     createInitialAgentStatuses()
   );
@@ -154,35 +129,130 @@ export function useReportStream(runId: string): UseReportStreamResult {
   const [isComplete, setIsComplete] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [langsmithTraceUrl, setLangsmithTraceUrl] = useState<string | null>(null);
-  const [demoMode, setDemoMode] = useState<boolean | null>(null);
+  const [demoMode, setDemoMode] = useState<boolean | null>(
+    options.demoHint ? true : null
+  );
   const [selectedAgent, setSelectedAgent] = useState<AgentName | null>(null);
   const lastUpdateAtRef = useRef(Date.now());
   const isCompleteRef = useRef(false);
-  const eventsRef = useRef<AgentStatusEvent[]>([]);
-  const logsRef = useRef<AgentLogEvent[]>([]);
   const sourceRef = useRef<EventSource | null>(null);
+  const reportReadyRef = useRef(false);
+  const demoModeRef = useRef<boolean | null>(options.demoHint ? true : null);
+  const pacerRef = useRef<DemoStreamPacer | null>(null);
+  const seenStatusKeysRef = useRef(new Set<string>());
+  const seenLogKeysRef = useRef(new Set<string>());
+  const pendingUntilModeRef = useRef<DemoStreamItem[]>([]);
+  const modeResolvedRef = useRef(options.demoHint ?? false);
 
   const timeline = useMemo(() => buildTimeline(events, logs), [events, logs]);
-
-  useEffect(() => {
-    eventsRef.current = events;
-  }, [events]);
-
-  useEffect(() => {
-    logsRef.current = logs;
-  }, [logs]);
 
   const touchTimeline = useCallback(() => {
     lastUpdateAtRef.current = Date.now();
   }, []);
+
+  const applyStreamItem = useCallback(
+    (item: DemoStreamItem) => {
+      touchTimeline();
+      if (item.kind === "status") {
+        setEvents((prev) => [...prev, item.data]);
+        applyStatusEvent(
+          item.data,
+          setAgentStatuses,
+          setAgentOutputs,
+          setSelectedAgent,
+          setError
+        );
+        return;
+      }
+
+      setLogs((prev) => [...prev, item.data]);
+      if (item.data.level === "error") {
+        setSelectedAgent(item.data.agent);
+      }
+    },
+    [touchTimeline]
+  );
+
+  const tryMarkComplete = useCallback(() => {
+    if (!reportReadyRef.current || isCompleteRef.current) return;
+    if (demoModeRef.current && pacerRef.current && !pacerRef.current.isIdle) return;
+    isCompleteRef.current = true;
+    setIsComplete(true);
+  }, []);
+
+  const deliverStreamItem = useCallback(
+    (item: DemoStreamItem) => {
+      const key =
+        item.kind === "status" ? statusKey(item.data) : logKey(item.data);
+      const seen =
+        item.kind === "status" ? seenStatusKeysRef : seenLogKeysRef;
+      if (seen.current.has(key)) return;
+      seen.current.add(key);
+
+      if (demoModeRef.current) {
+        pacerRef.current?.enqueue(item);
+        return;
+      }
+      applyStreamItem(item);
+    },
+    [applyStreamItem]
+  );
+
+  const resolveDemoMode = useCallback(
+    (value: boolean) => {
+      if (modeResolvedRef.current && demoModeRef.current === value) return;
+      modeResolvedRef.current = true;
+      demoModeRef.current = value;
+      setDemoMode(value);
+
+      const pending = pendingUntilModeRef.current.splice(0);
+      for (const item of pending) {
+        deliverStreamItem(item);
+      }
+    },
+    [deliverStreamItem]
+  );
+
+  const ingestStreamItem = useCallback(
+    (item: DemoStreamItem) => {
+      if (!modeResolvedRef.current) {
+        pendingUntilModeRef.current.push(item);
+        return;
+      }
+      deliverStreamItem(item);
+    },
+    [deliverStreamItem]
+  );
+
+  useEffect(() => {
+    if (options.demoHint) {
+      resolveDemoMode(true);
+      return;
+    }
+
+    const timeout = setTimeout(() => resolveDemoMode(false), 1500);
+    return () => clearTimeout(timeout);
+  }, [options.demoHint, resolveDemoMode]);
+
+  useEffect(() => {
+    pacerRef.current = new DemoStreamPacer(applyStreamItem);
+    const unsubscribe = pacerRef.current.onIdle(() => {
+      tryMarkComplete();
+    });
+
+    return () => {
+      unsubscribe();
+      pacerRef.current?.dispose();
+      pacerRef.current = null;
+    };
+  }, [applyStreamItem, tryMarkComplete]);
 
   const fetchReport = useCallback(async () => {
     const res = await fetch(`/api/report/${runId}`);
     if (res.status === 202) {
       const data = await res.json();
       hydrateRunContext(data, setInput, setWebsiteContent, setResearchEvidence);
-      if (Array.isArray(data.events)) setEvents(data.events);
-      if (Array.isArray(data.logs)) setLogs(data.logs);
+      if (typeof data.demo_mode === "boolean") resolveDemoMode(data.demo_mode);
       return;
     }
     if (!res.ok) {
@@ -192,47 +262,29 @@ export function useReportStream(runId: string): UseReportStreamResult {
     const data = await res.json();
     setReport(data.report);
     hydrateRunContext(data, setInput, setWebsiteContent, setResearchEvidence);
-    if (data.agent_statuses) setAgentStatuses(data.agent_statuses);
-    if (data.agent_outputs) setAgentOutputs(data.agent_outputs);
-    if (Array.isArray(data.events)) setEvents(data.events);
-    if (Array.isArray(data.logs)) setLogs(data.logs);
+    if (!demoModeRef.current) {
+      if (data.agent_statuses) setAgentStatuses(data.agent_statuses);
+      if (data.agent_outputs) setAgentOutputs(data.agent_outputs);
+    }
     if (data.langsmith_trace_url) setLangsmithTraceUrl(data.langsmith_trace_url);
-    if (typeof data.demo_mode === "boolean") setDemoMode(data.demo_mode);
-  }, [runId]);
+    if (typeof data.demo_mode === "boolean") resolveDemoMode(data.demo_mode);
+  }, [runId, resolveDemoMode]);
 
   const pollRunState = useCallback(async () => {
     const res = await fetch(`/api/report/${runId}`);
     if (res.status === 202) {
       const data = await res.json();
       hydrateRunContext(data, setInput, setWebsiteContent, setResearchEvidence);
+      if (typeof data.demo_mode === "boolean") resolveDemoMode(data.demo_mode);
+
       if (Array.isArray(data.events)) {
-        const incoming = data.events as AgentStatusEvent[];
-        const prevEvents = eventsRef.current;
-        const merged = mergeEvents(prevEvents, incoming);
-        if (merged.length > prevEvents.length) {
-          touchTimeline();
-          const prevKeys = new Set(prevEvents.map(statusKey));
-          for (const event of incoming) {
-            if (!prevKeys.has(statusKey(event))) {
-              applyStatusEvent(
-                event,
-                setAgentStatuses,
-                setAgentOutputs,
-                setSelectedAgent,
-                setError
-              );
-            }
-          }
-          setEvents(merged);
+        for (const event of data.events as AgentStatusEvent[]) {
+          ingestStreamItem({ kind: "status", data: event });
         }
       }
       if (Array.isArray(data.logs)) {
-        const incoming = data.logs as AgentLogEvent[];
-        const prevLogs = logsRef.current;
-        const merged = mergeLogs(prevLogs, incoming);
-        if (merged.length > prevLogs.length) {
-          touchTimeline();
-          setLogs(merged);
+        for (const log of data.logs as AgentLogEvent[]) {
+          ingestStreamItem({ kind: "log", data: log });
         }
       }
       return;
@@ -244,54 +296,70 @@ export function useReportStream(runId: string): UseReportStreamResult {
     const data = await res.json();
     setReport(data.report);
     hydrateRunContext(data, setInput, setWebsiteContent, setResearchEvidence);
-    if (data.agent_statuses) setAgentStatuses(data.agent_statuses);
-    if (data.agent_outputs) setAgentOutputs(data.agent_outputs);
-    if (Array.isArray(data.events)) setEvents(data.events);
-    if (Array.isArray(data.logs)) setLogs(data.logs);
+    if (!demoModeRef.current) {
+      if (data.agent_statuses) setAgentStatuses(data.agent_statuses);
+      if (data.agent_outputs) setAgentOutputs(data.agent_outputs);
+    }
     if (data.langsmith_trace_url) setLangsmithTraceUrl(data.langsmith_trace_url);
-    if (typeof data.demo_mode === "boolean") setDemoMode(data.demo_mode);
-    isCompleteRef.current = true;
-    setIsComplete(true);
-    touchTimeline();
+    if (typeof data.demo_mode === "boolean") resolveDemoMode(data.demo_mode);
+
+    if (Array.isArray(data.events)) {
+      for (const event of data.events as AgentStatusEvent[]) {
+        ingestStreamItem({ kind: "status", data: event });
+      }
+    }
+    if (Array.isArray(data.logs)) {
+      for (const log of data.logs as AgentLogEvent[]) {
+        ingestStreamItem({ kind: "log", data: log });
+      }
+    }
+
+    reportReadyRef.current = true;
+    tryMarkComplete();
     sourceRef.current?.close();
-  }, [runId, touchTimeline]);
+  }, [runId, ingestStreamItem, tryMarkComplete, resolveDemoMode]);
 
   useEffect(() => {
     isCompleteRef.current = isComplete;
   }, [isComplete]);
 
   useEffect(() => {
+    fetch(`/api/report/${runId}`)
+      .then(async (res) => {
+        if (!res.ok && res.status !== 202) return;
+        const data = await res.json();
+        if (typeof data.demo_mode === "boolean") resolveDemoMode(data.demo_mode);
+        hydrateRunContext(data, setInput, setWebsiteContent, setResearchEvidence);
+      })
+      .catch(() => undefined);
+  }, [runId, resolveDemoMode]);
+
+  useEffect(() => {
     const source = new EventSource(`/api/report/${runId}/stream`);
     sourceRef.current = source;
 
+    source.addEventListener("run_meta", (e) => {
+      const data = JSON.parse(e.data) as { demo_mode?: boolean };
+      if (data.demo_mode) resolveDemoMode(true);
+    });
+
     source.addEventListener("agent_status", (e) => {
       const event = JSON.parse(e.data) as AgentStatusEvent;
-      touchTimeline();
-      setEvents((prev) => [...prev, event]);
-      applyStatusEvent(
-        event,
-        setAgentStatuses,
-        setAgentOutputs,
-        setSelectedAgent,
-        setError
-      );
+      ingestStreamItem({ kind: "status", data: event });
     });
 
     source.addEventListener("agent_log", (e) => {
       const log = JSON.parse(e.data) as AgentLogEvent;
-      touchTimeline();
-      setLogs((prev) => [...prev, log]);
-      if (log.level === "error") {
-        setSelectedAgent(log.agent);
-      }
+      ingestStreamItem({ kind: "log", data: log });
     });
 
     source.addEventListener("report_ready", () => {
-      isCompleteRef.current = true;
-      setIsComplete(true);
-      fetchReport().catch((err) =>
-        setError(err instanceof Error ? err.message : "Failed to load report")
-      );
+      reportReadyRef.current = true;
+      fetchReport()
+        .then(() => tryMarkComplete())
+        .catch((err) =>
+          setError(err instanceof Error ? err.message : "Failed to load report")
+        );
       source.close();
     });
 
@@ -302,8 +370,6 @@ export function useReportStream(runId: string): UseReportStreamResult {
       }
     });
 
-    // Safety net only: the SSE route already polls the store server-side, so
-    // this fallback fires solely when the live stream goes quiet for a while.
     const pollFallback = setInterval(() => {
       if (isCompleteRef.current) return;
       if (Date.now() - lastUpdateAtRef.current < 5000) return;
@@ -317,7 +383,7 @@ export function useReportStream(runId: string): UseReportStreamResult {
       source.close();
       sourceRef.current = null;
     };
-  }, [runId, fetchReport, pollRunState, touchTimeline]);
+  }, [runId, fetchReport, pollRunState, ingestStreamItem, tryMarkComplete, resolveDemoMode]);
 
   return {
     agentStatuses,

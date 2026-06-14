@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { AnimatePresence, motion } from "motion/react";
 import type { AgentOutputs } from "@/server/export/agent-outputs";
 import {
   AGENT_LABELS,
@@ -9,8 +10,12 @@ import {
   type AgentStatuses,
 } from "@/types/agents";
 import { cn } from "@/lib/utils";
-import { CitationChip } from "@/components/report/citation-chip";
-import type { Citation } from "@/types/gtm";
+import { springSnappy } from "@/lib/motion-presets";
+import {
+  OutputContentView,
+  OutputViewMode,
+  OutputViewToggle,
+} from "@/components/swarm/output-view";
 
 type Props = {
   agentStatuses: AgentStatuses;
@@ -19,122 +24,9 @@ type Props = {
   onSelectAgent: (agent: AgentName) => void;
 };
 
-function OutputPreview({ agent, output }: { agent: AgentName; output: unknown }) {
-  if (!output || typeof output !== "object") {
-    return <p className="text-sm text-neutral-400">No output data.</p>;
-  }
-
-  const data = output as Record<string, unknown>;
-
-  if (agent === "gtm_strategist" && Array.isArray(data.icps)) {
-    return (
-      <ul className="space-y-2">
-        {(data.icps as Array<{ name: string; description: string }>).map((icp) => (
-          <li key={icp.name} className="text-sm border-l-2 border-blue-500 pl-3">
-            <p className="font-medium text-neutral-100">{icp.name}</p>
-            <p className="text-neutral-400">{icp.description}</p>
-          </li>
-        ))}
-      </ul>
-    );
-  }
-
-  if (agent === "prospect_discovery" && Array.isArray(data.prospects)) {
-    return (
-      <ul className="space-y-3">
-        {(
-          data.prospects as Array<{
-            company_name: string;
-            fit_score: number;
-            industry: string;
-            citations?: Citation[];
-          }>
-        ).map((p) => (
-          <li
-            key={p.company_name}
-            className="space-y-2 border-b border-neutral-800 pb-3"
-          >
-            <div className="flex justify-between text-sm">
-              <span className="font-medium text-neutral-200">{p.company_name}</span>
-              <span className="text-neutral-400">
-                {p.industry} · {p.fit_score}% fit
-              </span>
-            </div>
-            {p.citations && p.citations.length > 0 && (
-              <CitationChip citations={p.citations} />
-            )}
-          </li>
-        ))}
-      </ul>
-    );
-  }
-
-  if (agent === "signal_hunter" && Array.isArray(data.market_signals)) {
-    return (
-      <ul className="space-y-3">
-        {(
-          data.market_signals as Array<{
-            signal_type: string;
-            urgency: string;
-            description: string;
-            citations?: Citation[];
-          }>
-        ).map((s, i) => (
-          <li key={i} className="space-y-2 text-sm">
-            <div>
-              <span
-                className={cn(
-                  "inline-block px-1.5 py-0.5 rounded text-xs mr-2 border",
-                  s.urgency === "high"
-                    ? "bg-red-950/40 text-red-400 border-red-900/50"
-                    : s.urgency === "medium"
-                      ? "bg-yellow-950/40 text-yellow-400 border-yellow-900/50"
-                      : "bg-neutral-800 text-neutral-400 border-neutral-700"
-                )}
-              >
-                {s.urgency}
-              </span>
-              <span className="font-medium text-neutral-200">{s.signal_type}</span>
-              <p className="text-neutral-400 mt-0.5">{s.description}</p>
-            </div>
-            {s.citations && s.citations.length > 0 && (
-              <CitationChip citations={s.citations} />
-            )}
-          </li>
-        ))}
-      </ul>
-    );
-  }
-
-  if (agent === "outreach_planner" && Array.isArray(data.outreach_strategies)) {
-    return (
-      <ul className="space-y-3">
-        {(data.outreach_strategies as Array<{ company_name: string; outreach_angle: string }>).map(
-          (s) => (
-            <li key={s.company_name} className="text-sm">
-              <p className="font-medium text-neutral-100">{s.company_name}</p>
-              <p className="text-neutral-400">{s.outreach_angle}</p>
-            </li>
-          )
-        )}
-      </ul>
-    );
-  }
-
-  if (agent === "report_assembler" && typeof data.summary === "string") {
-    return <p className="text-sm text-neutral-300 leading-relaxed">{data.summary}</p>;
-  }
-
-  return (
-    <pre className="text-xs bg-neutral-950 border border-neutral-800 rounded p-3 overflow-x-auto text-neutral-300">
-      {JSON.stringify(output, null, 2)}
-    </pre>
-  );
-}
-
 const statusDot: Record<string, string> = {
-  pending: "bg-gray-300",
-  running: "bg-blue-500 animate-pulse",
+  pending: "bg-neutral-300",
+  running: "bg-[#FCD116] animate-pulse",
   done: "bg-green-500",
   error: "bg-red-500",
 };
@@ -145,88 +37,89 @@ export function AgentOutputExplorer({
   selectedAgent,
   onSelectAgent,
 }: Props) {
-  const [showRaw, setShowRaw] = useState(false);
+  const [viewMode, setViewMode] = useState<OutputViewMode>("text");
   const active = selectedAgent ?? AGENT_NAMES.find((a) => agentOutputs[a]) ?? AGENT_NAMES[0];
   const output = agentOutputs[active];
   const status = agentStatuses[active];
 
   return (
-    <section className="rounded-lg border border-neutral-800 bg-neutral-900/40 overflow-hidden">
-      <div className="px-4 py-3 border-b border-neutral-800 bg-neutral-900/80 flex flex-wrap items-center justify-between gap-2">
-        <h2 className="text-lg font-semibold text-white">Agent Outputs</h2>
-        <label className="flex items-center gap-2 text-xs text-neutral-400 cursor-pointer">
-          <input
-            type="checkbox"
-            checked={showRaw}
-            onChange={(e) => setShowRaw(e.target.checked)}
-            className="rounded border-neutral-700 bg-neutral-900 text-blue-600"
-          />
-          Show raw JSON
-        </label>
+    <section className="brutalist-report-explorer bg-white border-4 border-black brutalist-shadow overflow-hidden">
+      <div className="px-4 py-3 border-b-4 border-black flex flex-wrap items-center justify-between gap-2">
+        <div>
+          <h2 className="text-lg font-display font-bold text-black">Output explorer</h2>
+          <p className="text-xs text-neutral-600 mt-0.5">Browse each agent&apos;s result</p>
+        </div>
+        <OutputViewToggle mode={viewMode} onChange={setViewMode} />
       </div>
 
       <div className="grid lg:grid-cols-[240px_1fr] min-h-[320px]">
-        <div className="border-b lg:border-b-0 lg:border-r border-neutral-800 p-2 space-y-1 max-h-[360px] overflow-y-auto">
+        <div className="border-b-4 lg:border-b-0 lg:border-r-4 border-black p-2 space-y-1 max-h-[360px] overflow-y-auto bg-[#FCD116]/20">
           {AGENT_NAMES.map((agent) => {
             const hasOutput = agentOutputs[agent] !== undefined;
             const agentStatus = agentStatuses[agent];
 
             return (
-              <button
+              <motion.button
                 key={agent}
                 type="button"
+                layout
                 onClick={() => onSelectAgent(agent)}
+                whileHover={{ x: -1 }}
+                whileTap={{ scale: 0.99 }}
+                transition={springSnappy}
                 className={cn(
-                  "w-full text-left px-3 py-2 rounded-md text-sm transition-colors flex items-center gap-2",
+                  "w-full text-left px-3 py-2 text-sm transition-colors flex items-center gap-2 border-2 border-transparent",
                   active === agent
-                    ? "bg-neutral-800 text-white ring-1 ring-blue-500/30"
-                    : "hover:bg-neutral-800/40 text-neutral-300",
+                    ? "bg-[#FCD116] text-black border-black font-semibold"
+                    : "hover:bg-white text-neutral-800",
                   !hasOutput && agentStatus === "pending" && "opacity-50"
                 )}
               >
-                <span className={cn("w-2 h-2 rounded-full shrink-0", statusDot[agentStatus])} />
+                <motion.span
+                  layout
+                  animate={agentStatus === "running" ? { scale: [1, 1.35, 1] } : { scale: 1 }}
+                  transition={
+                    agentStatus === "running"
+                      ? { duration: 1.2, repeat: Infinity, ease: "easeInOut" }
+                      : springSnappy
+                  }
+                  className={cn("w-2 h-2 rounded-full shrink-0 border border-black", statusDot[agentStatus])}
+                />
                 <span className="truncate">{AGENT_LABELS[agent]}</span>
-              </button>
+              </motion.button>
             );
           })}
         </div>
 
         <div className="p-4 overflow-y-auto max-h-[360px]">
-          <div className="flex items-center gap-2 mb-3">
-            <h3 className="font-medium text-white">{AGENT_LABELS[active]}</h3>
-            <span
-              className={cn(
-                "text-xs px-2 py-0.5 rounded-full capitalize border",
-                status === "done"
-                  ? "bg-emerald-950/40 text-emerald-400 border-emerald-900/50"
-                  : status === "running"
-                    ? "bg-blue-950/40 text-blue-400 border-blue-900/50"
-                    : status === "error"
-                      ? "bg-red-950/40 text-red-400 border-red-900/50"
-                      : "bg-neutral-800 text-neutral-400 border-neutral-700"
-              )}
+          <AnimatePresence mode="wait">
+            <motion.div
+              key={active}
+              initial={{ opacity: 0, y: 8 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: -6 }}
+              transition={springSnappy}
             >
-              {status}
-            </span>
-          </div>
+              <div className="flex items-center gap-2 mb-3">
+                <h3 className="font-semibold text-black">{AGENT_LABELS[active]}</h3>
+                <span className="text-xs px-2 py-0.5 border-2 border-black capitalize bg-white">
+                  {status}
+                </span>
+              </div>
 
-          {!output && status !== "done" && (
-            <p className="text-sm text-neutral-400 italic">
-              {status === "running"
-                ? "Agent is working… output will appear when complete."
-                : "Output not available yet."}
-            </p>
-          )}
+              {!output && status !== "done" && (
+                <p className="text-sm text-neutral-600 italic">
+                  {status === "running"
+                    ? "Agent is working — output appears when done."
+                    : "No output yet."}
+                </p>
+              )}
 
-          {output !== undefined && !showRaw && (
-            <OutputPreview agent={active} output={output} />
-          )}
-
-          {output !== undefined && showRaw && (
-            <pre className="text-xs bg-neutral-950 text-emerald-400 rounded border border-neutral-800 p-4 overflow-x-auto">
-              {JSON.stringify(output, null, 2)}
-            </pre>
-          )}
+              {output !== undefined && (
+                <OutputContentView agent={active} data={output} mode={viewMode} />
+              )}
+            </motion.div>
+          </AnimatePresence>
         </div>
       </div>
     </section>

@@ -11,14 +11,24 @@
     "binding": "ASSETS"
   },
   "vars": {
-    "OPENROUTER_MODEL": "openrouter/free",
+    "OPENROUTERMODEL1": "liquid/lfm-2.5-1.2b-instruct:free",
+    "OPENROUTERMODEL2": "liquid/lfm-2.5-1.2b-thinking:free",
+    "OPENROUTERMODEL3": "openai/gpt-oss-20b:free",
+    "OPENROUTERMODEL4": "nvidia/nemotron-3.5-content-safety:free",
+    "OPENROUTERMODEL5": "openai/gpt-oss-20b:free",
+    "OPENROUTERMODEL6": "nvidia/nemotron-nano-12b-v2-vl:free",
+    "OPENROUTERMODEL7": "nvidia/nemotron-nano-9b-v2:free",
+    "OPENROUTERMODEL8": "nvidia/nemotron-nano-12b-v2-vl:free",
+    "OPENROUTERMODEL9": "openai/gpt-oss-120b:free",
+    "OPENROUTERMODEL10": "openai/gpt-oss-120b:free",
+    "OPENROUTERMODEL11": "liquid/lfm-2.5-1.2b-instruct:free",
     "LANGCHAIN_TRACING_V2": "false",
     "LANGCHAIN_PROJECT": "gtmaxxin",
-    "MOCK_LLM": "true",
-    "MOCK_TOOLS": "true"
+    "MOCK_LLM": "false",
+    "MOCK_TOOLS": "false"
   },
   "secrets": {
-    "required": ["OPENROUTER_API_KEY"]
+    "required": ["OPENROUTERAPIKEY1"]
   },
   "kv_namespaces": [
     {

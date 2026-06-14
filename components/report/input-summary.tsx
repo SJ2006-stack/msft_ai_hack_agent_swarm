@@ -21,34 +21,32 @@ export function InputSummary({ input, websiteContent }: Props) {
   if (!input) {
     return (
       <section className="bg-white border-4 border-black p-5 brutalist-shadow">
-        <h2 className="text-xl font-display font-black uppercase text-black tracking-tight border-b-2 border-black pb-2">
-          Your Input
+        <h2 className="text-xl font-display font-bold text-black border-b-2 border-black pb-2">
+          Input
         </h2>
-        <p className="text-sm font-medium text-neutral-600 animate-pulse">
-          Loading submitted input…
-        </p>
+        <p className="text-sm text-neutral-600">Loading…</p>
       </section>
     );
   }
 
   return (
     <section className="bg-white border-4 border-black p-5 brutalist-shadow space-y-4">
-      <h2 className="text-xl font-display font-black uppercase text-black tracking-tight border-b-2 border-black pb-2">
-        Your Input
+      <h2 className="text-xl font-display font-bold text-black border-b-2 border-black pb-2">
+        Input
       </h2>
 
       <dl className="grid sm:grid-cols-3 gap-4 text-sm">
         <div className="space-y-1">
-          <dt className="text-xs font-black uppercase tracking-wide text-neutral-600">Company</dt>
+          <dt className="text-xs font-semibold text-neutral-600">Company</dt>
           <dd className="font-bold text-black">{input.company}</dd>
         </div>
         <div className="space-y-1 sm:col-span-2">
-          <dt className="text-xs font-black uppercase tracking-wide text-neutral-600">Product</dt>
+          <dt className="text-xs font-semibold text-neutral-600">Product</dt>
           <dd className="font-medium text-black leading-relaxed">{input.product}</dd>
         </div>
         {input.url && (
           <div className="space-y-1 sm:col-span-3">
-            <dt className="text-xs font-black uppercase tracking-wide text-neutral-600">Website</dt>
+            <dt className="text-xs font-semibold text-neutral-600">Website</dt>
             <dd>
               <a
                 href={input.url}
@@ -68,7 +66,7 @@ export function InputSummary({ input, websiteContent }: Props) {
           <button
             type="button"
             onClick={() => setShowCrawl((v) => !v)}
-            className="flex w-full items-center justify-between text-left font-black uppercase text-xs tracking-wide hover:text-neutral-700"
+            className="flex w-full items-center justify-between text-left text-xs font-semibold hover:text-neutral-700"
           >
             Website crawl preview
             {showCrawl ? (

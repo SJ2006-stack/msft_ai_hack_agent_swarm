@@ -1,8 +1,10 @@
 "use client";
 
 import { useEffect, useRef } from "react";
+import { motion } from "motion/react";
 import type { TimelineEntry } from "@/hooks/use-report-stream";
 import { AGENT_LABELS, type AgentName } from "@/types/agents";
+import { listItem, springSnappy } from "@/lib/motion-presets";
 import { cn } from "@/lib/utils";
 
 type Props = {
@@ -65,16 +67,26 @@ export function AgentActivityLog({ timeline, selectedAgent, onSelectAgent }: Pro
   return (
     <div className="flex flex-col h-full min-h-[420px] border-4 border-black bg-white overflow-hidden brutalist-shadow">
       <div className="px-4 py-3 border-b-4 border-black bg-white flex items-center justify-between gap-2">
-        <h2 className="text-sm font-display font-black text-black uppercase tracking-tight">
-          GTMaxxin Terminal
-        </h2>
-        <div className="flex items-center gap-2 text-[10px] font-black uppercase text-black">
-          <span className="text-neutral-500">{timeline.length} lines</span>
+        <h2 className="text-sm font-display font-semibold text-black">Activity log</h2>
+        <div className="flex items-center gap-2 text-[10px] font-medium text-black">
+          <motion.span
+            key={timeline.length}
+            initial={{ scale: 1.2, opacity: 0.6 }}
+            animate={{ scale: 1, opacity: 1 }}
+            transition={springSnappy}
+            className="text-neutral-500"
+          >
+            {timeline.length} lines
+          </motion.span>
           {warnCount > 0 && (
-            <span className="bg-[#FCD116] border-2 border-black px-1.5 py-0.5 text-black">{warnCount} warn</span>
+            <span className="bg-[#FCD116] border-2 border-black px-1.5 py-0.5 text-black">
+              {warnCount} warn
+            </span>
           )}
           {errorCount > 0 && (
-            <span className="bg-red-500 border-2 border-black px-1.5 py-0.5 text-white">{errorCount} err</span>
+            <span className="bg-red-500 border-2 border-black px-1.5 py-0.5 text-white">
+              {errorCount} err
+            </span>
           )}
         </div>
       </div>
@@ -83,40 +95,61 @@ export function AgentActivityLog({ timeline, selectedAgent, onSelectAgent }: Pro
         className="flex-1 overflow-y-auto p-4 font-sans text-xs leading-relaxed space-y-1 bg-white"
       >
         {timeline.length === 0 && (
-          <p className="text-neutral-400 italic">Waiting for GTMaxxin stream…</p>
+          <motion.p
+            initial={{ opacity: 0 }}
+            animate={{ opacity: [0.4, 0.8, 0.4] }}
+            transition={{ duration: 1.6, repeat: Infinity }}
+            className="text-neutral-400 italic"
+          >
+            Waiting for events…
+          </motion.p>
         )}
         {timeline.map((entry, i) => {
+          const key =
+            entry.kind === "status"
+              ? `status-${entry.data.agent}-${entry.data.status}-${entry.timestamp}-${i}`
+              : `log-${entry.data.agent}-${entry.data.level}-${entry.timestamp}-${i}`;
+
           if (entry.kind === "status") {
             const event = entry.data;
             const label = AGENT_LABELS[event.agent];
             const isSelected = selectedAgent === event.agent;
 
             return (
-              <button
-                key={`status-${event.agent}-${event.status}-${entry.timestamp}-${i}`}
+              <motion.button
+                key={key}
                 type="button"
+                layout
+                variants={listItem}
+                initial="hidden"
+                animate="visible"
+                transition={springSnappy}
                 onClick={() => onSelectAgent(event.agent)}
                 className={cn(
-                  "log-entry-reveal w-full text-left rounded-none px-2 py-1.5 hover:bg-neutral-100 transition-colors border border-transparent",
+                  "w-full text-left rounded-none px-2 py-1.5 hover:bg-neutral-100 transition-colors border border-transparent",
                   isSelected
                     ? "bg-[#FCD116]/20 border-black font-bold"
-                    : "text-[#0A0A0A]",
-                  event.status === "running" && "animate-pulse"
+                    : "text-[#0A0A0A]"
                 )}
               >
                 <span className="text-neutral-400">[{formatTime(entry.timestamp)}]</span>{" "}
-                <span className={statusColor[event.status]}>
-                  {statusIcon[event.status]}
-                </span>{" "}
+                <span className={statusColor[event.status]}>{statusIcon[event.status]}</span>{" "}
                 <span className="text-neutral-700 font-bold">{label}</span>{" "}
                 <span className="text-neutral-500">→ {event.status}</span>
+                {event.status === "running" && (
+                  <motion.span
+                    className="inline-block ml-1 w-1.5 h-1.5 rounded-full bg-blue-600 align-middle"
+                    animate={{ opacity: [1, 0.3, 1] }}
+                    transition={{ duration: 1, repeat: Infinity }}
+                  />
+                )}
                 {event.summary && event.status === "done" && (
                   <span className="text-black font-bold"> · {event.summary}</span>
                 )}
                 {event.error && (
                   <span className="block pl-4 text-red-600 font-bold mt-0.5">{event.error}</span>
                 )}
-              </button>
+              </motion.button>
             );
           }
 
@@ -124,15 +157,18 @@ export function AgentActivityLog({ timeline, selectedAgent, onSelectAgent }: Pro
           const isSelected = selectedAgent === log.agent;
 
           return (
-            <button
-              key={`log-${log.agent}-${log.level}-${entry.timestamp}-${i}`}
+            <motion.button
+              key={key}
               type="button"
+              layout
+              variants={listItem}
+              initial="hidden"
+              animate="visible"
+              transition={springSnappy}
               onClick={() => onSelectAgent(log.agent)}
               className={cn(
-                "log-entry-reveal w-full text-left rounded-none px-2 py-1.5 hover:bg-neutral-100 transition-colors border border-transparent",
-                isSelected
-                  ? "bg-[#FCD116]/20 border-black font-bold"
-                  : "text-[#0A0A0A]"
+                "w-full text-left rounded-none px-2 py-1.5 hover:bg-neutral-100 transition-colors border border-transparent",
+                isSelected ? "bg-[#FCD116]/20 border-black font-bold" : "text-[#0A0A0A]"
               )}
             >
               <span className="text-neutral-400">[{formatTime(entry.timestamp)}]</span>{" "}
@@ -153,7 +189,7 @@ export function AgentActivityLog({ timeline, selectedAgent, onSelectAgent }: Pro
                   ↳ {log.detail}
                 </span>
               )}
-            </button>
+            </motion.button>
           );
         })}
       </div>

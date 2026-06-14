@@ -44,6 +44,7 @@ export function createAgentStatusEvent(
 export type SSEEvent =
   | { type: "agent_status"; data: AgentStatusEvent }
   | { type: "agent_log"; data: AgentLogEvent }
+  | { type: "run_meta"; data: { demo_mode: boolean; run_id: string } }
   | { type: "report_ready"; data: { run_id: string } }
   | { type: "error"; data: { message: string } };
 

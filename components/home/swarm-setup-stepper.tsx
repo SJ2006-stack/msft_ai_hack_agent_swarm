@@ -9,12 +9,12 @@ const SETUP_STEPS = [
   {
     id: "describe",
     step: "01",
-    title: "DESCRIBE YOUR PRODUCT",
+    title: "Describe your product",
     icon: Globe,
     description:
-      "Feed your company description, product value prop, and optional website URL. The Input Processor normalizes context for downstream agents.",
+      "Company name, product pitch, and optional website URL. The input processor normalizes this for downstream agents.",
     visual: {
-      label: "GTM INPUT FORM",
+      label: "Input",
       lines: [
         "Company: B2B SaaS Sales Intelligence",
         "Product: AI pipeline analytics for mid-market",
@@ -25,34 +25,34 @@ const SETUP_STEPS = [
   {
     id: "launch",
     step: "02",
-    title: "LAUNCH GTMAXXIN",
+    title: "Run the swarm",
     icon: Zap,
     description:
-      "11 specialized agents spin up on LangGraph — GTM Strategist, Signal Hunter, Market Mapper, and more — executing in parallel where possible.",
+      "Eleven agents execute on LangGraph — strategy, research, discovery, scoring, and outreach — with parallel branches where possible.",
     visual: {
-      label: "LANGGRAPH PIPELINE",
+      label: "Pipeline",
       lines: [
-        "▸ GTM Strategist → ICP personas",
-        "▸ Mapper + Hunter (parallel)",
-        "▸ Prospect Discovery → 14 accounts",
-        "▸ Outreach Planner → sequences",
+        "GTM Strategist → ICP & personas",
+        "Market Mapper + Signal Hunter (parallel)",
+        "Prospect Discovery → ranked accounts",
+        "Outreach Planner → sequences",
       ],
     },
   },
   {
     id: "review",
     step: "03",
-    title: "REVIEW GTM REPORT",
+    title: "Review the report",
     icon: FileText,
     description:
-      "Get a structured report with ICP profiles, intent signals, qualified prospects, decision-maker contacts, and personalized outreach drafts.",
+      "Structured output: ICPs, signals, prospects, decision makers, and outreach drafts you can export.",
     visual: {
-      label: "REPORT OUTPUT",
+      label: "Output",
       lines: [
-        "✓ 3 buyer personas mapped",
-        "✓ 8 intent signals detected",
-        "✓ 14 qualified prospects ranked",
-        "✓ Outreach sequences ready",
+        "3 buyer personas",
+        "8 intent signals",
+        "14 ranked prospects",
+        "Outreach sequences",
       ],
     },
   },
@@ -70,9 +70,7 @@ export function SwarmSetupStepper({ onLaunchClick }: { onLaunchClick: () => void
 
       const observer = new IntersectionObserver(
         ([entry]) => {
-          if (entry.isIntersecting) {
-            setActiveStep(index);
-          }
+          if (entry.isIntersecting) setActiveStep(index);
         },
         { threshold: 0.55, rootMargin: "-10% 0px -35% 0px" }
       );
@@ -87,19 +85,16 @@ export function SwarmSetupStepper({ onLaunchClick }: { onLaunchClick: () => void
   return (
     <section className="border-b-4 border-black bg-white">
       <div className="grid lg:grid-cols-[minmax(280px,1fr)_1.4fr]">
-        {/* Sticky left panel */}
         <div className="lg:sticky lg:top-0 lg:self-start border-b-4 lg:border-b-0 lg:border-r-4 border-black bg-[#0A0A0A] text-[#FCD116] p-6 md:p-10 lg:min-h-screen lg:flex lg:flex-col lg:justify-center">
           <ScrollReveal>
-            <span className="text-xs font-black uppercase tracking-widest text-neutral-500 block mb-2">
-              3 STEPS WITH GTMAXXIN
+            <span className="text-xs font-semibold uppercase tracking-wide text-neutral-500 block mb-2">
+              How it works
             </span>
-            <h3 className="text-3xl md:text-4xl font-black uppercase tracking-tight leading-none text-white mb-4">
-              MINUTES TO
-              <br />
-              SET UP
+            <h3 className="text-3xl md:text-4xl font-black leading-none text-white mb-4">
+              Three steps
             </h3>
-            <p className="text-sm font-bold text-neutral-400 leading-relaxed mb-8 max-w-xs">
-              From product description to qualified prospect list — no manual research sprints required.
+            <p className="text-sm text-neutral-400 leading-relaxed mb-8 max-w-xs">
+              From product description to a prospect list and outreach drafts.
             </p>
           </ScrollReveal>
 
@@ -124,17 +119,15 @@ export function SwarmSetupStepper({ onLaunchClick }: { onLaunchClick: () => void
                 >
                   <span
                     className={cn(
-                      "font-mono text-xs px-1.5 py-0.5 border-2 border-black font-black shrink-0",
+                      "font-mono text-xs px-1.5 py-0.5 border-2 border-black font-bold shrink-0",
                       isActive ? "bg-black text-[#FCD116]" : "bg-neutral-800 text-neutral-400"
                     )}
                   >
                     {step.step}
                   </span>
-                  <div>
-                    <div className="flex items-center gap-2">
-                      <Icon className="w-4 h-4 stroke-[2.5]" />
-                      <span className="font-black text-sm uppercase">{step.title}</span>
-                    </div>
+                  <div className="flex items-center gap-2">
+                    <Icon className="w-4 h-4 stroke-[2.5]" />
+                    <span className="font-semibold text-sm">{step.title}</span>
                   </div>
                 </button>
               );
@@ -144,14 +137,13 @@ export function SwarmSetupStepper({ onLaunchClick }: { onLaunchClick: () => void
           <button
             type="button"
             onClick={onLaunchClick}
-            className="mt-8 w-full py-3 bg-[#FCD116] text-black font-black text-sm border-4 border-black brutalist-shadow-yellow brutalist-btn-hover-yellow flex items-center justify-center gap-2 uppercase"
+            className="mt-8 w-full py-3 bg-[#FCD116] text-black font-semibold text-sm border-4 border-black brutalist-shadow-yellow brutalist-btn-hover-yellow flex items-center justify-center gap-2"
           >
-            Start Now
+            Start a run
             <ArrowRight className="w-4 h-4 stroke-[3]" />
           </button>
         </div>
 
-        {/* Scrolling right panels */}
         <div className="bg-[#FCD116]">
           {SETUP_STEPS.map((step, i) => (
             <div
@@ -163,25 +155,25 @@ export function SwarmSetupStepper({ onLaunchClick }: { onLaunchClick: () => void
             >
               <ScrollReveal delay={i * 80} className="w-full space-y-6">
                 <div>
-                  <span className="text-xs font-black uppercase text-neutral-600">
-                    STEP {step.step}
+                  <span className="text-xs font-semibold text-neutral-600">
+                    Step {step.step}
                   </span>
-                  <h4 className="text-2xl sm:text-3xl font-black uppercase mt-1 text-black">
+                  <h4 className="text-2xl sm:text-3xl font-bold mt-1 text-black">
                     {step.title}
                   </h4>
-                  <p className="text-sm font-bold text-neutral-800 mt-3 max-w-lg leading-relaxed">
+                  <p className="text-sm text-neutral-800 mt-3 max-w-lg leading-relaxed">
                     {step.description}
                   </p>
                 </div>
 
                 <div className="bg-white border-4 border-black brutalist-shadow p-6 space-y-3">
-                  <p className="text-[10px] font-black uppercase tracking-widest text-neutral-500 border-b-2 border-black pb-2">
+                  <p className="text-xs font-semibold uppercase tracking-wide text-neutral-500 border-b-2 border-black pb-2">
                     {step.visual.label}
                   </p>
                   {step.visual.lines.map((line) => (
                     <p
                       key={line}
-                      className="text-xs sm:text-sm font-bold font-mono text-black border-l-4 border-[#FCD116] pl-3 py-1"
+                      className="text-xs sm:text-sm font-mono text-black border-l-4 border-[#FCD116] pl-3 py-1"
                     >
                       {line}
                     </p>

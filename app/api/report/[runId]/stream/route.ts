@@ -46,10 +46,10 @@ export async function GET(
   let poll: ReturnType<typeof setInterval> | undefined;
   let lastEventCount = 0;
   let lastLogCount = 0;
+  const isDemo = run.demo_mode === true;
 
   const stream = new ReadableStream({
-    async start(controller) {
-      // Drains a single already-fetched record, avoiding extra KV reads per tick.
+    start(controller) {
       const pushBuffered = (record: RunRecord) => {
         const events = record.events ?? [];
         for (let i = lastEventCount; i < events.length; i++) {
@@ -68,10 +68,17 @@ export async function GET(
         lastLogCount = logs.length;
       };
 
+      if (isDemo) {
+        controller.enqueue(
+          encoder.encode(
+            formatSSE({ type: "run_meta", data: { demo_mode: true, run_id: runId } })
+          )
+        );
+      }
+
       pushBuffered(run);
 
-      const current = run;
-      if (current?.status === "done" && current.state?.report) {
+      if (run.status === "done" && run.state?.report) {
         controller.enqueue(
           encoder.encode(formatSSE({ type: "report_ready", data: { run_id: runId } }))
         );
@@ -79,12 +86,12 @@ export async function GET(
         return;
       }
 
-      if (current?.status === "error") {
+      if (run.status === "error") {
         controller.enqueue(
           encoder.encode(
             formatSSE({
               type: "error",
-              data: { message: current.error ?? "Unknown error" },
+              data: { message: run.error ?? "Unknown error" },
             })
           )
         );
@@ -151,7 +158,7 @@ export async function GET(
           controller.close();
           unsubscribe?.();
         }
-      }, 1000);
+      }, isDemo ? 500 : 1000);
     },
     cancel() {
       unsubscribe?.();

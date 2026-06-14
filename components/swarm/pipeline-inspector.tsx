@@ -1,8 +1,16 @@
 "use client";
 
 import { useCallback, useMemo, useState } from "react";
+import { AnimatePresence, motion } from "motion/react";
 import { ChevronLeft, ChevronRight, Copy, Check } from "lucide-react";
 import { CitationChip } from "@/components/report/citation-chip";
+import {
+  JsonOutputView,
+  OutputContentView,
+  OutputViewMode,
+  OutputViewToggle,
+  PayloadTextView,
+} from "@/components/swarm/output-view";
 import { getAgentInputs } from "@/server/export/agent-context";
 import type { ResearchEvidence } from "@/swarm/state";
 import type { AgentOutputs } from "@/server/export/agent-outputs";
@@ -14,6 +22,7 @@ import {
 } from "@/types/agents";
 import type { Citation, GTMInput } from "@/types/gtm";
 import { cn } from "@/lib/utils";
+import { springSnappy } from "@/lib/motion-presets";
 
 type TabId = "inputs" | "outputs" | "sources";
 
@@ -35,142 +44,6 @@ const statusBadge: Record<string, string> = {
   done: "bg-green-500 text-white",
   error: "bg-red-500 text-white",
 };
-
-function OutputPreview({ agent, output }: { agent: AgentName; output: unknown }) {
-  if (!output || typeof output !== "object") {
-    return <p className="text-sm font-medium text-neutral-600">No output data.</p>;
-  }
-
-  const data = output as Record<string, unknown>;
-
-  if (agent === "gtm_strategist" && Array.isArray(data.icps)) {
-    return (
-      <ul className="space-y-2">
-        {(data.icps as Array<{ name: string; description: string }>).map((icp) => (
-          <li key={icp.name} className="text-sm border-l-4 border-black pl-3">
-            <p className="font-black uppercase text-black">{icp.name}</p>
-            <p className="font-medium text-neutral-800">{icp.description}</p>
-          </li>
-        ))}
-      </ul>
-    );
-  }
-
-  if (agent === "prospect_discovery" && Array.isArray(data.prospects)) {
-    return (
-      <ul className="space-y-3">
-        {(
-          data.prospects as Array<{
-            company_name: string;
-            fit_score: number;
-            industry: string;
-            citations?: Citation[];
-          }>
-        ).map((p) => (
-          <li key={p.company_name} className="space-y-2 border-b-2 border-black pb-3">
-            <div className="flex justify-between gap-2 text-sm">
-              <span className="font-black text-black">{p.company_name}</span>
-              <span className="font-bold text-neutral-700 shrink-0">
-                {p.industry} · {p.fit_score}% fit
-              </span>
-            </div>
-            {p.citations && p.citations.length > 0 && (
-              <CitationChip citations={p.citations} />
-            )}
-          </li>
-        ))}
-      </ul>
-    );
-  }
-
-  if (agent === "signal_hunter" && Array.isArray(data.market_signals)) {
-    return (
-      <ul className="space-y-3">
-        {(
-          data.market_signals as Array<{
-            signal_type: string;
-            urgency: string;
-            description: string;
-            citations?: Citation[];
-          }>
-        ).map((s, i) => (
-          <li key={i} className="space-y-2 text-sm">
-            <div>
-              <span
-                className={cn(
-                  "inline-block px-1.5 py-0.5 text-xs mr-2 border-2 border-black font-black uppercase",
-                  s.urgency === "high"
-                    ? "bg-red-500 text-white"
-                    : s.urgency === "medium"
-                      ? "bg-[#FCD116] text-black"
-                      : "bg-white text-black"
-                )}
-              >
-                {s.urgency}
-              </span>
-              <span className="font-black text-black">{s.signal_type}</span>
-              <p className="font-medium text-neutral-800 mt-0.5">{s.description}</p>
-            </div>
-            {s.citations && s.citations.length > 0 && (
-              <CitationChip citations={s.citations} />
-            )}
-          </li>
-        ))}
-      </ul>
-    );
-  }
-
-  if (agent === "outreach_planner" && Array.isArray(data.outreach_strategies)) {
-    return (
-      <ul className="space-y-3">
-        {(data.outreach_strategies as Array<{ company_name: string; outreach_angle: string }>).map(
-          (s) => (
-            <li key={s.company_name} className="text-sm border-l-4 border-black pl-3">
-              <p className="font-black text-black">{s.company_name}</p>
-              <p className="font-medium text-neutral-800">{s.outreach_angle}</p>
-            </li>
-          )
-        )}
-      </ul>
-    );
-  }
-
-  if (agent === "report_assembler" && typeof data.summary === "string") {
-    return <p className="text-sm font-medium text-black leading-relaxed">{data.summary}</p>;
-  }
-
-  return (
-    <pre className="text-xs bg-[#0A0A0A] border-4 border-black p-3 overflow-x-auto text-green-300 font-mono">
-      {JSON.stringify(output, null, 2)}
-    </pre>
-  );
-}
-
-function JsonBlock({ data, showRaw }: { data: unknown; showRaw: boolean }) {
-  if (data === null || data === undefined) {
-    return (
-      <p className="text-sm font-medium text-neutral-600 italic">Not available yet.</p>
-    );
-  }
-
-  if (showRaw) {
-    return (
-      <pre className="text-xs bg-[#0A0A0A] border-4 border-black p-3 overflow-x-auto text-green-300 font-mono">
-        {JSON.stringify(data, null, 2)}
-      </pre>
-    );
-  }
-
-  if (typeof data === "string") {
-    return <p className="text-sm font-medium text-black whitespace-pre-wrap">{data}</p>;
-  }
-
-  return (
-    <pre className="text-xs bg-[#0A0A0A] border-4 border-black p-3 overflow-x-auto text-green-300 font-mono max-h-64 overflow-y-auto">
-      {JSON.stringify(data, null, 2)}
-    </pre>
-  );
-}
 
 function SourcesPanel({
   agent,
@@ -281,7 +154,7 @@ export function PipelineInspector({
   researchEvidence,
 }: Props) {
   const [tab, setTab] = useState<TabId>("outputs");
-  const [showRaw, setShowRaw] = useState(false);
+  const [viewMode, setViewMode] = useState<OutputViewMode>("text");
   const [copied, setCopied] = useState(false);
 
   const active =
@@ -368,32 +241,38 @@ export function PipelineInspector({
     <section className="bg-white border-4 border-black brutalist-shadow overflow-hidden">
       <div className="px-4 py-3 border-b-4 border-black flex flex-wrap items-center justify-between gap-3">
         <div>
-          <h2 className="text-xl font-display font-black uppercase tracking-tight text-black">
-            Pipeline Inspector
+          <h2 className="text-xl font-display font-bold text-black">
+            Pipeline inspector
           </h2>
-          <p className="text-[10px] font-bold uppercase tracking-wide text-neutral-700 mt-0.5">
-            Input → agent → output for each step
+          <p className="text-xs text-neutral-600 mt-0.5">
+            Input → output for each agent step
           </p>
         </div>
         <div className="flex flex-wrap items-center gap-2">
-          <button
+          <motion.button
             type="button"
             onClick={() => stepAgent(-1)}
             disabled={activeIndex <= 0}
-            className="inline-flex items-center gap-1 px-2 py-1.5 border-2 border-black bg-white font-black uppercase text-[10px] disabled:opacity-40 brutalist-shadow hover:translate-x-[-1px] hover:translate-y-[-1px]"
+            whileHover={{ x: -1, y: -1 }}
+            whileTap={{ scale: 0.98 }}
+            transition={springSnappy}
+            className="inline-flex items-center gap-1 px-2 py-1.5 border-2 border-black bg-white font-black uppercase text-[10px] disabled:opacity-40 brutalist-shadow"
           >
             <ChevronLeft className="w-3.5 h-3.5 stroke-[3]" />
             Prev
-          </button>
-          <button
+          </motion.button>
+          <motion.button
             type="button"
             onClick={() => stepAgent(1)}
             disabled={activeIndex >= AGENT_NAMES.length - 1}
-            className="inline-flex items-center gap-1 px-2 py-1.5 border-2 border-black bg-white font-black uppercase text-[10px] disabled:opacity-40 brutalist-shadow hover:translate-x-[-1px] hover:translate-y-[-1px]"
+            whileHover={{ x: -1, y: -1 }}
+            whileTap={{ scale: 0.98 }}
+            transition={springSnappy}
+            className="inline-flex items-center gap-1 px-2 py-1.5 border-2 border-black bg-white font-black uppercase text-[10px] disabled:opacity-40 brutalist-shadow"
           >
             Next
             <ChevronRight className="w-3.5 h-3.5 stroke-[3]" />
-          </button>
+          </motion.button>
         </div>
       </div>
 
@@ -429,15 +308,7 @@ export function PipelineInspector({
       </div>
 
       <div className="px-4 py-2 border-b-2 border-black flex flex-wrap items-center justify-between gap-2 bg-white">
-        <label className="flex items-center gap-2 text-[10px] font-black uppercase cursor-pointer">
-          <input
-            type="checkbox"
-            checked={showRaw}
-            onChange={(e) => setShowRaw(e.target.checked)}
-            className="border-2 border-black"
-          />
-          Raw JSON
-        </label>
+        <OutputViewToggle mode={viewMode} onChange={setViewMode} />
         <button
           type="button"
           onClick={handleCopy}
@@ -459,49 +330,56 @@ export function PipelineInspector({
       </div>
 
       <div className="p-4 min-h-[280px] max-h-[420px] overflow-y-auto">
-        {tab === "inputs" && (
-          <div className="space-y-4">
-            {inputSections.map((section) => (
-              <div key={section.title} className="space-y-2">
-                <p className="text-[10px] font-black uppercase tracking-widest text-neutral-600 border-b-2 border-black pb-1">
-                  {section.title}
-                </p>
-                <JsonBlock data={section.payload} showRaw={showRaw} />
+        <AnimatePresence mode="wait">
+          <motion.div
+            key={`${active}-${tab}`}
+            initial={{ opacity: 0, x: 8 }}
+            animate={{ opacity: 1, x: 0 }}
+            exit={{ opacity: 0, x: -8 }}
+            transition={springSnappy}
+          >
+            {tab === "inputs" && (
+              <div className="space-y-4">
+                {inputSections.map((section) => (
+                  <div key={section.title} className="space-y-2">
+                    <p className="text-[10px] font-black uppercase tracking-widest text-neutral-600 border-b-2 border-black pb-1">
+                      {section.title}
+                    </p>
+                    {viewMode === "json" ? (
+                      <JsonOutputView data={section.payload} />
+                    ) : (
+                      <PayloadTextView data={section.payload} />
+                    )}
+                  </div>
+                ))}
               </div>
-            ))}
-          </div>
-        )}
+            )}
 
-        {tab === "outputs" && (
-          <>
-            {output === undefined && status !== "done" && (
-              <p className="text-sm font-medium text-neutral-600 italic">
-                {status === "running"
-                  ? "Agent is working… output will appear when complete."
-                  : "Output not available yet."}
-              </p>
+            {tab === "outputs" && (
+              <>
+                {output === undefined && status !== "done" && (
+                  <p className="text-sm font-medium text-neutral-600 italic">
+                    {status === "running"
+                      ? "Agent is working… output will appear when complete."
+                      : "Output not available yet."}
+                  </p>
+                )}
+                {output !== undefined && (
+                  <OutputContentView mode={viewMode} agent={active} data={output} />
+                )}
+              </>
             )}
-            {output !== undefined && !showRaw && (
-              <OutputPreview agent={active} output={output} />
-            )}
-            {output !== undefined && showRaw && (
-              <pre className="text-xs bg-[#0A0A0A] text-green-300 border-4 border-black p-4 overflow-x-auto font-mono">
-                {JSON.stringify(output, null, 2)}
-              </pre>
-            )}
-          </>
-        )}
 
-        {tab === "sources" && (
-          <SourcesPanel
-            agent={active}
-            agentOutputs={agentOutputs}
-            researchEvidence={resolvedResearchEvidence}
-          />
-        )}
+            {tab === "sources" && (
+              <SourcesPanel
+                agent={active}
+                agentOutputs={agentOutputs}
+                researchEvidence={resolvedResearchEvidence}
+              />
+            )}
+          </motion.div>
+        </AnimatePresence>
       </div>
     </section>
   );
 }
-
-export { OutputPreview };

@@ -2,15 +2,7 @@ import { createInitialAgentStatuses } from "@/types/agents";
 import type { GTMInput, GTMReport } from "@/types/gtm";
 import type { GTMReportState, ResearchEvidence } from "@/swarm/state";
 
-/**
- * Pre-baked demo datasets.
- *
- * Free / low-cost LLMs are too slow (and too noisy) for a live demo, so for the
- * three showcase companies ΓÇö Microsoft, Apple, SpaceX ΓÇö we ship a complete,
- * schema-valid set of agent outputs. The demo replay runner streams these
- * through every agent node so the swarm still animates, but the result is
- * instant and deterministic. No API keys required.
- */
+// Demo datasets for Microsoft, Apple, and SpaceX — replayed without LLM calls.
 export type DemoCompany = {
   id: "microsoft" | "apple" | "spacex";
   label: string;

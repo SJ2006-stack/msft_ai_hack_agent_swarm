@@ -6,6 +6,7 @@ import { GTMInputSchema } from "@/types/gtm";
 import { runSwarmGraph } from "@/swarm/graph";
 import { runDemoReplay } from "@/swarm/demo-runner";
 import { resolveDemoCompany } from "@/fixtures/demo-companies";
+import { syncEnvFromCloudflare } from "@/server/cloudflare-env";
 import { createRun, updateRun, appendEvent, appendLog, bindRunsKV } from "@/server/runs/store";
 import type { SwarmStreamEvent } from "@/swarm/events";
 
@@ -29,13 +30,12 @@ export async function POST(request: NextRequest) {
     try {
       const cf = await getCloudflareContext({ async: true });
       ctx = cf.ctx;
+      syncEnvFromCloudflare(cf.env);
       bindRunsKV(extractRunsKV(cf.env));
     } catch {
       bindRunsKV(null);
     }
 
-    // Pre-baked demo companies (Microsoft, Apple, SpaceX) replay instantly
-    // without any LLM/tool calls, so the demo is fast and deterministic.
     const demoCompany = resolveDemoCompany(input);
 
     await createRun(runId);
@@ -43,12 +43,13 @@ export async function POST(request: NextRequest) {
 
     const pendingEvents: Promise<void>[] = [];
 
-    const emit = (event: SwarmStreamEvent) => {
-      if (event.type === "status") {
-        pendingEvents.push(appendEvent(runId, event.data));
-      } else {
-        pendingEvents.push(appendLog(runId, event.data));
-      }
+    const emit = async (event: SwarmStreamEvent) => {
+      const pending =
+        event.type === "status"
+          ? appendEvent(runId, event.data)
+          : appendLog(runId, event.data);
+      pendingEvents.push(pending);
+      await pending;
     };
 
     const execute = demoCompany
@@ -77,7 +78,10 @@ export async function POST(request: NextRequest) {
       void runPromise;
     }
 
-    return NextResponse.json({ run_id: runId });
+    return NextResponse.json({
+      run_id: runId,
+      demo_mode: demoCompany !== null,
+    });
   } catch (err) {
     const message = err instanceof Error ? err.message : "Invalid request";
     return NextResponse.json({ error: message }, { status: 400 });

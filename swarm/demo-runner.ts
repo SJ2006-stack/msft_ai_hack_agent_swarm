@@ -2,30 +2,19 @@ import type { AgentName } from "@/types/agents";
 import { AGENT_LABELS } from "@/types/agents";
 import type { GTMReportState } from "@/swarm/state";
 import { createInitialState } from "@/swarm/state";
+import type { AgentLogEvent, AgentStatusEvent } from "@/swarm/events";
 import { createAgentStatusEvent } from "@/swarm/events";
 import {
   extractAgentOutput,
   summarizeAgentOutput,
 } from "@/server/export/agent-outputs";
-import {
-  bindAgentLogger,
-  clearAgentLogger,
-  logAgent,
-} from "@/swarm/shared/agent-logger";
 import type { SwarmEmitter } from "@/swarm/orchestrator";
 import {
   buildDemoReport,
   type DemoCompany,
 } from "@/fixtures/demo-companies";
+import { DEMO_REPLAY_LINE_DELAY_MS, demoReplayDelay } from "@/lib/demo-replay-pacing";
 
-/**
- * Deterministic, LLM-free replay of a pre-baked demo company through every
- * agent node. It emits the exact same status/log event shape the real graph
- * produces, so the swarm visualizer still animates ΓÇö but it finishes in a few
- * seconds and never depends on a (slow, gibberish-prone) free model.
- *
- * Phases mirror the real graph topology, including the two parallel branches.
- */
 const PHASES: AgentName[][] = [
   ["input_processor"],
   ["gtm_strategist"],
@@ -38,20 +27,43 @@ const PHASES: AgentName[][] = [
   ["report_assembler"],
 ];
 
+const DEFAULT_EVENT_DELAY_MS = DEMO_REPLAY_LINE_DELAY_MS;
+
 function delay(ms: number): Promise<void> {
-  return new Promise((resolve) => setTimeout(resolve, ms));
+  return ms > 0 ? demoReplayDelay(ms) : Promise.resolve();
 }
 
-/** Applies one agent's pre-baked slice to the working state + emits flavor logs. */
-function applyAgentSlice(
+type PacedLog = (
+  agent: AgentName,
+  level: AgentLogEvent["level"],
+  message: string
+) => Promise<void>;
+
+function createLogEvent(
+  runId: string,
+  agent: AgentName,
+  level: AgentLogEvent["level"],
+  message: string
+): AgentLogEvent {
+  return {
+    run_id: runId,
+    agent,
+    level,
+    message,
+    timestamp: new Date().toISOString(),
+  };
+}
+
+async function applyAgentSlice(
   agent: AgentName,
   state: GTMReportState,
-  c: DemoCompany
-): void {
+  c: DemoCompany,
+  log: PacedLog
+): Promise<void> {
   switch (agent) {
     case "input_processor":
       state.website_content = c.website_content;
-      logAgent(
+      await log(
         "input_processor",
         "info",
         `Website content captured (${c.website_content.length} chars)`
@@ -64,12 +76,12 @@ function applyAgentSlice(
       state.market_map = c.market_map;
       break;
     case "signal_hunter":
-      logAgent(
+      await log(
         "signal_hunter",
         "step",
         `Searching web via Tavily: "${c.signal_evidence.query}"`
       );
-      logAgent(
+      await log(
         "signal_hunter",
         "info",
         `Tavily returned ${c.signal_evidence.results.length} result(s)`
@@ -83,12 +95,12 @@ function applyAgentSlice(
     case "join_research":
       break;
     case "prospect_discovery":
-      logAgent(
+      await log(
         "prospect_discovery",
         "step",
         `Searching web via Tavily: "${c.prospect_evidence.query}"`
       );
-      logAgent(
+      await log(
         "prospect_discovery",
         "info",
         `Tavily returned ${c.prospect_evidence.results.length} result(s)`
@@ -120,50 +132,51 @@ function applyAgentSlice(
 export async function runDemoReplay(
   runId: string,
   company: DemoCompany,
-  emit?: SwarmEmitter,
-  options?: { stepMs?: number }
+  emit?: SwarmEmitter | ((event: Parameters<NonNullable<SwarmEmitter>>[0]) => Promise<void>),
+  options?: { eventDelayMs?: number; stepMs?: number }
 ): Promise<GTMReportState> {
-  const stepMs = options?.stepMs ?? 380;
+  const eventDelayMs =
+    options?.eventDelayMs ?? options?.stepMs ?? DEFAULT_EVENT_DELAY_MS;
   const state = createInitialState(runId, company.input);
 
-  bindAgentLogger(runId, (log) => emit?.({ type: "log", data: log }));
+  async function pacedLog(
+    agent: AgentName,
+    level: AgentLogEvent["level"],
+    message: string
+  ): Promise<void> {
+    await emit?.({ type: "log", data: createLogEvent(runId, agent, level, message) });
+    if (eventDelayMs > 0) await delay(eventDelayMs);
+  }
 
-  try {
-    logAgent(
-      "input_processor",
-      "info",
-      `Loaded pre-baked demo dataset for ${company.label}`
-    );
+  async function pacedStatus(data: AgentStatusEvent): Promise<void> {
+    await emit?.({ type: "status", data });
+    if (eventDelayMs > 0) await delay(eventDelayMs);
+  }
 
-    for (const group of PHASES) {
-      for (const agent of group) {
-        logAgent(agent, "step", `Starting ${AGENT_LABELS[agent]}`);
-        emit?.({
-          type: "status",
-          data: createAgentStatusEvent(runId, agent, "running"),
-        });
-      }
+  await pacedLog(
+    "input_processor",
+    "info",
+    `Demo dataset loaded for ${company.label}`
+  );
 
-      await delay(stepMs);
-
-      for (const agent of group) {
-        applyAgentSlice(agent, state, company);
-        const output = extractAgentOutput(agent, state);
-        const summary = summarizeAgentOutput(agent, output);
-        logAgent(agent, "info", summary);
-        emit?.({
-          type: "status",
-          data: {
-            ...createAgentStatusEvent(runId, agent, "done"),
-            output,
-            summary,
-          },
-        });
-      }
+  for (const group of PHASES) {
+    for (const agent of group) {
+      await pacedLog(agent, "step", `Starting ${AGENT_LABELS[agent]}`);
+      await pacedStatus(createAgentStatusEvent(runId, agent, "running"));
     }
 
-    return state;
-  } finally {
-    clearAgentLogger();
+    for (const agent of group) {
+      await applyAgentSlice(agent, state, company, pacedLog);
+      const output = extractAgentOutput(agent, state);
+      const summary = summarizeAgentOutput(agent, output);
+      await pacedLog(agent, "info", summary);
+      await pacedStatus({
+        ...createAgentStatusEvent(runId, agent, "done"),
+        output,
+        summary,
+      });
+    }
   }
+
+  return state;
 }

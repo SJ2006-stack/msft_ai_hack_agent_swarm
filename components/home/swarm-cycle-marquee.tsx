@@ -1,14 +1,13 @@
 import { InfiniteMarquee } from "@/components/ui/infinite-marquee";
 
 const CYCLE_ITEMS = [
-  "REFINE ICP",
-  "SCAN SIGNALS",
-  "MAP MARKETS",
-  "QUALIFY ACCOUNTS",
-  "SCORE OPPORTUNITIES",
-  "DRAFT OUTREACH",
-  "COMPILE REPORT",
-  "ADAPT & ITERATE",
+  "Refine ICP",
+  "Scan signals",
+  "Map markets",
+  "Qualify accounts",
+  "Score opportunities",
+  "Draft outreach",
+  "Compile report",
 ] as const;
 
 export function SwarmCycleMarquee() {
@@ -19,7 +18,7 @@ export function SwarmCycleMarquee() {
           {CYCLE_ITEMS.map((item) => (
             <span
               key={item}
-              className="flex items-center gap-6 text-xs sm:text-sm font-black uppercase tracking-widest whitespace-nowrap"
+              className="flex items-center gap-6 text-xs sm:text-sm font-semibold whitespace-nowrap"
             >
               {item}
               <span className="text-white/40 text-lg" aria-hidden>

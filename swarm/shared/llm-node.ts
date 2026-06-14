@@ -8,7 +8,7 @@ import {
   parseSchemaWithLog,
   truncate,
 } from "@/swarm/shared/agent-logger";
-import { callLLM } from "@/server/llm/openrouter";
+import { callLLM } from "@/server/llm/client";
 import { isMockLLM } from "@/swarm/tools/mock";
 
 const MAX_LLM_ATTEMPTS = 3;

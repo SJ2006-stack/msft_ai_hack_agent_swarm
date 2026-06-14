@@ -19,7 +19,6 @@
   "dependencies": {
     "@langchain/core": "^0.3.42",
     "@langchain/langgraph": "^0.2.62",
-    "@openrouter/sdk": "^0.12.79",
     "@radix-ui/react-label": "^2.1.2",
     "@radix-ui/react-slot": "^1.1.2",
     "@xyflow/react": "^12.4.4",
@@ -27,6 +26,7 @@
     "clsx": "^2.1.1",
     "fflate": "^0.8.3",
     "lucide-react": "^0.475.0",
+    "motion": "^12.40.0",
     "next": "^15.2.0",
     "react": "^19.0.0",
     "react-dom": "^19.0.0",
