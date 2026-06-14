@@ -8,7 +8,7 @@
 ```bash
 LANGCHAIN_TRACING_V2=true
 LANGCHAIN_API_KEY=your_langsmith_api_key
-LANGCHAIN_PROJECT=prospect-swarm
+LANGCHAIN_PROJECT=gtmaxxin
 OPENROUTER_API_KEY=your_openrouter_key
 OPENROUTER_MODEL=google/gemini-2.0-flash-001
 TAVILY_API_KEY=your_tavily_key          # optional, capped at 5 results

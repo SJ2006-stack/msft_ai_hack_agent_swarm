@@ -1,7 +1,0 @@
-{
-  "node_version": "20",
-  "graphs": {
-    "prospect_swarm": "./lib/agents/graph.ts:graph"
-  },
-  "env": ".env"
-}

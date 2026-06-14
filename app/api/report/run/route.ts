@@ -3,9 +3,9 @@ import { randomUUID } from "crypto";
 import { getCloudflareContext } from "@opennextjs/cloudflare";
 import type { KVNamespace } from "@cloudflare/workers-types";
 import { GTMInputSchema } from "@/types/gtm";
-import { runSwarmGraph } from "@/lib/agents/graph";
-import { createRun, updateRun, appendEvent, appendLog, bindRunsKV } from "@/lib/runs/store";
-import type { SwarmStreamEvent } from "@/lib/agents/events";
+import { runSwarmGraph } from "@/swarm/graph";
+import { createRun, updateRun, appendEvent, appendLog, bindRunsKV } from "@/server/runs/store";
+import type { SwarmStreamEvent } from "@/swarm/events";
 
 export const maxDuration = 300;
 

@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import type { AgentOutputs } from "@/lib/export/agent-outputs";
+import type { AgentOutputs } from "@/server/export/agent-outputs";
 import {
   AGENT_LABELS,
   AGENT_NAMES,

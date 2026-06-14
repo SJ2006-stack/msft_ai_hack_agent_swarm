@@ -3,9 +3,9 @@
 import { useCallback, useMemo, useState } from "react";
 import { ChevronLeft, ChevronRight, Copy, Check } from "lucide-react";
 import { CitationChip } from "@/components/report/citation-chip";
-import { getAgentInputs } from "@/lib/export/agent-context";
-import type { ResearchEvidence } from "@/lib/agents/state";
-import type { AgentOutputs } from "@/lib/export/agent-outputs";
+import { getAgentInputs } from "@/server/export/agent-context";
+import type { ResearchEvidence } from "@/swarm/state";
+import type { AgentOutputs } from "@/server/export/agent-outputs";
 import {
   AGENT_LABELS,
   AGENT_NAMES,

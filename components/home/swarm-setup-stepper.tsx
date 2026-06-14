@@ -25,7 +25,7 @@ const SETUP_STEPS = [
   {
     id: "launch",
     step: "02",
-    title: "LAUNCH THE SWARM",
+    title: "LAUNCH GTMAXXIN",
     icon: Zap,
     description:
       "11 specialized agents spin up on LangGraph — GTM Strategist, Signal Hunter, Market Mapper, and more — executing in parallel where possible.",
@@ -91,7 +91,7 @@ export function SwarmSetupStepper({ onLaunchClick }: { onLaunchClick: () => void
         <div className="lg:sticky lg:top-0 lg:self-start border-b-4 lg:border-b-0 lg:border-r-4 border-black bg-[#0A0A0A] text-[#FCD116] p-6 md:p-10 lg:min-h-screen lg:flex lg:flex-col lg:justify-center">
           <ScrollReveal>
             <span className="text-xs font-black uppercase tracking-widest text-neutral-500 block mb-2">
-              3 STEPS TO GTM INTELLIGENCE
+              3 STEPS WITH GTMAXXIN
             </span>
             <h3 className="text-3xl md:text-4xl font-black uppercase tracking-tight leading-none text-white mb-4">
               MINUTES TO

@@ -66,7 +66,7 @@ export function AgentActivityLog({ timeline, selectedAgent, onSelectAgent }: Pro
     <div className="flex flex-col h-full min-h-[420px] border-4 border-black bg-white overflow-hidden brutalist-shadow">
       <div className="px-4 py-3 border-b-4 border-black bg-white flex items-center justify-between gap-2">
         <h2 className="text-sm font-display font-black text-black uppercase tracking-tight">
-          Swarm Terminal
+          GTMaxxin Terminal
         </h2>
         <div className="flex items-center gap-2 text-[10px] font-black uppercase text-black">
           <span className="text-neutral-500">{timeline.length} lines</span>
@@ -83,7 +83,7 @@ export function AgentActivityLog({ timeline, selectedAgent, onSelectAgent }: Pro
         className="flex-1 overflow-y-auto p-4 font-sans text-xs leading-relaxed space-y-1 bg-white"
       >
         {timeline.length === 0 && (
-          <p className="text-neutral-400 italic">Waiting for swarm stream…</p>
+          <p className="text-neutral-400 italic">Waiting for GTMaxxin stream…</p>
         )}
         {timeline.map((entry, i) => {
           if (entry.kind === "status") {

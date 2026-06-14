@@ -117,7 +117,7 @@ export function SwarmChatDemo() {
             LIVE AGENT DIALOGUE
           </span>
           <h3 className="text-2xl sm:text-3xl font-black uppercase tracking-tight mt-1 text-black">
-            SWARM ACTIVITY FEED
+            GTMAXXIN ACTIVITY FEED
           </h3>
         </div>
         <p className="text-sm font-bold max-w-sm text-neutral-800 leading-tight">
@@ -130,7 +130,7 @@ export function SwarmChatDemo() {
         className="bg-white border-4 border-black brutalist-shadow-lg p-4 sm:p-6 space-y-4 min-h-[320px]"
       >
         <div className="flex items-center justify-between border-b-2 border-black pb-3 mb-2">
-          <span className="text-xs font-black uppercase">Swarm Terminal Preview</span>
+          <span className="text-xs font-black uppercase">GTMaxxin Terminal Preview</span>
           <span className="flex items-center gap-1.5 text-[10px] font-black text-neutral-500">
             <span className="w-1.5 h-1.5 bg-green-500 rounded-full animate-ping" />
             SIMULATED RUN

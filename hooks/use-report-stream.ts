@@ -1,11 +1,11 @@
 "use client";
 
 import { useCallback, useEffect, useMemo, useRef, useState, type Dispatch, type SetStateAction } from "react";
-import type { AgentLogEvent, AgentStatusEvent } from "@/lib/agents/events";
-import type { AgentOutputs } from "@/lib/export/agent-outputs";
+import type { AgentLogEvent, AgentStatusEvent } from "@/swarm/events";
+import type { AgentOutputs } from "@/server/export/agent-outputs";
 import type { AgentStatuses } from "@/types/agents";
 import { AGENT_NAMES, createInitialAgentStatuses, type AgentName } from "@/types/agents";
-import type { ResearchEvidence } from "@/lib/agents/state";
+import type { ResearchEvidence } from "@/swarm/state";
 import type { GTMInput, GTMReport } from "@/types/gtm";
 
 export type TimelineEntry =

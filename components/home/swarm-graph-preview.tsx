@@ -64,7 +64,7 @@ export function SwarmGraphPreview() {
               LANGGRAPH TOPOLOGY
             </span>
             <h3 className="text-xl sm:text-2xl md:text-3xl font-black uppercase text-black mt-1">
-              THE SWARM WORKFLOW GRAPH
+              THE GTMAXXIN WORKFLOW GRAPH
             </h3>
           </div>
           <div className="flex items-center gap-3 text-xs font-black">

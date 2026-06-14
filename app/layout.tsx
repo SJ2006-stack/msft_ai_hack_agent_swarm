@@ -16,8 +16,8 @@ const spaceGrotesk = Space_Grotesk({
 });
 
 export const metadata: Metadata = {
-  title: "GTM Intelligence Swarm",
-  description: "AI-powered GTM Swarm: buyer personas, intent scouting, adjacent markets, and outreach sequences.",
+  title: "GTMaxxin",
+  description: "AI-powered GTM intelligence: buyer personas, intent scouting, adjacent markets, and outreach sequences.",
 };
 
 export default function RootLayout({

@@ -3,7 +3,7 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { Zap, ArrowRight } from "lucide-react";
-import { FIXTURE_INPUT } from "@/lib/fixtures/demo-input";
+import { FIXTURE_INPUT } from "@/fixtures/demo-input";
 import { MeshGradient } from "@/components/ui/mesh-gradient";
 import { ScrollReveal } from "@/components/ui/scroll-reveal";
 import { SwarmCycleMarquee } from "@/components/home/swarm-cycle-marquee";
@@ -65,12 +65,12 @@ export default function HomePage() {
             <div className="max-w-6xl mx-auto grid lg:grid-cols-2 gap-10 lg:gap-16 items-center">
               <div className="space-y-6">
                 <p className="text-xs font-black uppercase tracking-widest text-neutral-700">
-                  Prospect Swarm · 11 Agents
+                  GTMaxxin · 11 Agents
                 </p>
                 <h1 className="text-4xl sm:text-5xl md:text-6xl font-black uppercase leading-none tracking-tighter text-[#0A0A0A]">
-                  Orchestrate
+                  GTM
                   <br />
-                  <span className="inline-block rotate-180 origin-center">Swarm</span>
+                  <span className="inline-block rotate-180 origin-center">Maxxin</span>
                 </h1>
                 <p className="text-sm md:text-base font-bold text-neutral-800 max-w-md leading-relaxed">
                   Describe your company and product — eleven AI agents map markets, hunt
@@ -79,7 +79,7 @@ export default function HomePage() {
                 <div className="flex flex-wrap gap-2 text-xs font-black">
                   <span className="bg-black text-[#FCD116] px-3 py-1.5 border-2 border-black flex items-center gap-1.5">
                     <span className="w-2 h-2 bg-green-500 rounded-full animate-pulse" />
-                    SWARM READY
+                    GTMAXXIN READY
                   </span>
                   <a
                     href="#architecture-section"
@@ -98,7 +98,7 @@ export default function HomePage() {
                 >
                   <div className="mb-6 flex flex-wrap items-center justify-between gap-3">
                     <h2 className="text-lg font-black uppercase tracking-tight text-[#0A0A0A]">
-                      Launch Swarm
+                      Launch GTMaxxin
                     </h2>
                     <button
                       type="button"
@@ -178,12 +178,12 @@ export default function HomePage() {
                       {loading ? (
                         <>
                           <span className="inline-block h-4 w-4 animate-spin rounded-full border-2 border-[#FCD116] border-t-transparent" />
-                          Starting swarm…
+                          Starting GTMaxxin…
                         </>
                       ) : (
                         <>
                           <Zap className="h-4 w-4 fill-current" />
-                          Launch swarm
+                          Launch GTMaxxin
                         </>
                       )}
                     </button>
@@ -215,7 +215,7 @@ export default function HomePage() {
           </h3>
           <div className="space-y-4">
             <p className="text-sm leading-relaxed text-neutral-300 font-medium">
-              Prospect Swarm coordinates distinct AI roles over LangGraph state — compiling
+              GTMaxxin coordinates distinct AI roles over LangGraph state — compiling
               structured target maps at developer speed.
             </p>
             <button
@@ -223,7 +223,7 @@ export default function HomePage() {
               onClick={scrollToLaunchForm}
               className="bg-[#FCD116] text-black font-black uppercase text-sm border-2 border-black px-6 py-3 brutalist-shadow brutalist-btn-hover flex items-center gap-2"
             >
-              Start swarm engine
+              Start GTMaxxin engine
               <ArrowRight className="w-4 h-4 stroke-[3]" />
             </button>
           </div>
@@ -232,7 +232,7 @@ export default function HomePage() {
         <ScrollReveal delay={120} className="p-8 md:p-12 bg-white text-[#0A0A0A] flex flex-col justify-between space-y-8">
           <div className="space-y-4">
             <span className="text-xs font-black text-neutral-500 uppercase tracking-widest block">
-              Swarm performance telemetry
+              GTMaxxin performance telemetry
             </span>
             <p className="text-xl font-black uppercase leading-tight">
               Shared graph state prevents model drift and ensures high-fit prospect matches.
@@ -256,7 +256,7 @@ export default function HomePage() {
       </section>
 
       <footer className="bg-[#0A0A0A] text-neutral-500 border-t-4 border-black p-8 text-center text-xs font-bold">
-        <p className="text-white font-black text-sm uppercase">Prospect Swarm</p>
+        <p className="text-white font-black text-sm uppercase">GTMaxxin</p>
         <p className="text-[10px] text-neutral-600 mt-1">
           © {new Date().getFullYear()} · Next.js, LangGraph & Tailwind
         </p>

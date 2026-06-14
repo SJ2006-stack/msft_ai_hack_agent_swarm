@@ -1,5 +1,5 @@
 {
-  "name": "prospect-swarm",
+  "name": "gtmaxxin",
   "version": "0.1.0",
   "private": true,
   "scripts": {
@@ -7,14 +7,14 @@
     "build": "next build",
     "start": "next start",
     "typecheck": "tsc --noEmit",
-    "smoke": "tsx scripts/smoke-swarm.ts",
-    "test-node": "tsx scripts/test-node.ts",
-    "langgraph:dev": "npx @langchain/langgraph-cli dev",
+    "smoke": "tsx scripts/dev/smoke-swarm.ts",
+    "test-node": "tsx scripts/dev/test-node.ts",
+    "langgraph:dev": "npx @langchain/langgraph-cli dev --config infra/langgraph.json",
     "preview": "opennextjs-cloudflare build && opennextjs-cloudflare preview",
     "deploy": "opennextjs-cloudflare build && opennextjs-cloudflare deploy",
     "cf-typegen": "wrangler types --env-interface CloudflareEnv cloudflare-env.d.ts",
-    "cf:sync-secrets": "bash scripts/cloudflare-sync-secrets.sh",
-    "cf:dev-vars": "bash scripts/cloudflare-dev-vars.sh"
+    "cf:sync-secrets": "bash scripts/deploy/cloudflare-sync-secrets.sh",
+    "cf:dev-vars": "bash scripts/deploy/cloudflare-dev-vars.sh"
   },
   "dependencies": {
     "@langchain/core": "^0.3.42",

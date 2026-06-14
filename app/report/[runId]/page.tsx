@@ -61,10 +61,10 @@ export default function ReportPage({
             href="/"
             className="w-8 h-8 bg-[#FCD116] text-[#0A0A0A] flex items-center justify-center font-black text-base border-2 border-black tracking-tighter shadow-sm cursor-pointer"
           >
-            PS
+            GM
           </Link>
           <span className="text-[9px] font-black tracking-widest text-[#FCD116] rotate-90 my-3">
-            SWARM
+            GTMAXXIN
           </span>
         </div>
 
@@ -78,14 +78,14 @@ export default function ReportPage({
           </Link>
           <Link
             href="/?tab=launch"
-            aria-label="Launch Swarm Engine"
+            aria-label="Launch GTMaxxin Engine"
             className="p-1.5 text-neutral-500 hover:text-white transition-colors"
           >
             <Zap className="w-5 h-5 stroke-[2]" />
           </Link>
           <Link
             href="/?tab=architecture"
-            aria-label="Swarm Architecture"
+            aria-label="GTMaxxin Architecture"
             className="p-1.5 text-neutral-500 hover:text-white transition-colors"
           >
             <Layers className="w-5 h-5 stroke-[2]" />
@@ -127,7 +127,7 @@ export default function ReportPage({
 
             <div className="flex flex-wrap items-center gap-2 mt-4">
               <h1 className="text-3xl sm:text-4xl font-black uppercase tracking-tight leading-none text-black select-none">
-                Swarm Workbench
+                GTMaxxin Workbench
               </h1>
               {demoMode !== null && (
                 <span
@@ -140,7 +140,7 @@ export default function ReportPage({
               )}
               {!isComplete && (
                 <span className="px-2 py-0.5 border-2 border-black text-xs font-black uppercase bg-green-500 text-white animate-pulse">
-                  Swarm Running
+                  GTMaxxin Running
                 </span>
               )}
             </div>
@@ -186,10 +186,10 @@ export default function ReportPage({
           <InputSummary input={input} websiteContent={websiteContent} />
         )}
 
-        {/* Live swarm: graph + terminal */}
+        {/* Live GTMaxxin: graph + terminal */}
         <div className="space-y-3">
           <h2 className="text-lg font-display font-black uppercase tracking-tight text-black border-b-2 border-black pb-1 inline-block">
-            Live Swarm
+            Live GTMaxxin
           </h2>
           <div className="grid lg:grid-cols-[1.1fr_0.9fr] gap-8">
             <section className="bg-white border-4 border-black p-4 brutalist-shadow">
@@ -270,7 +270,7 @@ export default function ReportPage({
         {!report && !error && timeline.length === 0 && (
           <div className="text-center py-12 bg-white border-4 border-black brutalist-shadow">
             <div className="font-black animate-pulse text-lg uppercase">
-              Connecting to live swarm telemetry…
+              Connecting to live GTMaxxin telemetry…
             </div>
           </div>
         )}
