@@ -20,7 +20,21 @@ export type RunRecord = {
 
 const memoryRuns = new Map<string, RunRecord>();
 const streamListeners = new Map<string, Set<(event: SwarmStreamEvent) => void>>();
+const writeQueues = new Map<string, Promise<void>>();
 let boundKV: KVNamespace | null | undefined;
+
+function enqueueRunWrite<T>(runId: string, operation: () => Promise<T>): Promise<T> {
+  const previous = writeQueues.get(runId) ?? Promise.resolve();
+  const result = previous.then(operation);
+  writeQueues.set(
+    runId,
+    result.then(
+      () => undefined,
+      () => undefined
+    )
+  );
+  return result;
+}
 
 export function bindRunsKV(kv: KVNamespace | null): void {
   boundKV = kv;
@@ -88,17 +102,19 @@ function notifyListeners(runId: string, event: SwarmStreamEvent): void {
 }
 
 export async function createRun(runId: string): Promise<RunRecord> {
-  const now = new Date().toISOString();
-  const record: RunRecord = {
-    run_id: runId,
-    status: "pending",
-    events: [],
-    logs: [],
-    created_at: now,
-    updated_at: now,
-  };
-  await writeRun(record);
-  return record;
+  return enqueueRunWrite(runId, async () => {
+    const now = new Date().toISOString();
+    const record: RunRecord = {
+      run_id: runId,
+      status: "pending",
+      events: [],
+      logs: [],
+      created_at: now,
+      updated_at: now,
+    };
+    await writeRun(record);
+    return record;
+  });
 }
 
 export async function getRun(runId: string): Promise<RunRecord | undefined> {
@@ -109,34 +125,38 @@ export async function updateRun(
   runId: string,
   patch: Partial<RunRecord>
 ): Promise<RunRecord | undefined> {
-  const existing = await readRun(runId);
-  if (!existing) return undefined;
+  return enqueueRunWrite(runId, async () => {
+    const existing = await readRun(runId);
+    if (!existing) return undefined;
 
-  const updated: RunRecord = {
-    ...existing,
-    ...patch,
-    updated_at: new Date().toISOString(),
-  };
-  await writeRun(updated);
-  return updated;
+    const updated: RunRecord = {
+      ...existing,
+      ...patch,
+      updated_at: new Date().toISOString(),
+    };
+    await writeRun(updated);
+    return updated;
+  });
 }
 
 export async function appendEvent(
   runId: string,
   event: AgentStatusEvent
 ): Promise<void> {
-  const run = await readRun(runId);
-  if (run) {
-    run.events.push(event);
-    if (event.status === "done" && event.output !== undefined) {
-      run.agent_outputs = {
-        ...run.agent_outputs,
-        [event.agent]: event.output,
-      };
+  await enqueueRunWrite(runId, async () => {
+    const run = await readRun(runId);
+    if (run) {
+      run.events.push(event);
+      if (event.status === "done" && event.output !== undefined) {
+        run.agent_outputs = {
+          ...run.agent_outputs,
+          [event.agent]: event.output,
+        };
+      }
+      run.updated_at = new Date().toISOString();
+      await writeRun(run);
     }
-    run.updated_at = new Date().toISOString();
-    await writeRun(run);
-  }
+  });
   notifyListeners(runId, { type: "status", data: event });
 }
 
@@ -144,12 +164,14 @@ export async function appendLog(
   runId: string,
   log: AgentLogEvent
 ): Promise<void> {
-  const run = await readRun(runId);
-  if (run) {
-    run.logs.push(log);
-    run.updated_at = new Date().toISOString();
-    await writeRun(run);
-  }
+  await enqueueRunWrite(runId, async () => {
+    const run = await readRun(runId);
+    if (run) {
+      run.logs.push(log);
+      run.updated_at = new Date().toISOString();
+      await writeRun(run);
+    }
+  });
   notifyListeners(runId, { type: "log", data: log });
 }
 

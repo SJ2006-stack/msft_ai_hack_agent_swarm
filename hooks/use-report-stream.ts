@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState, type Dispatch, type SetStateAction } from "react";
 import type { AgentLogEvent, AgentStatusEvent } from "@/lib/agents/events";
 import type { AgentOutputs } from "@/lib/export/agent-outputs";
 import type { AgentStatuses } from "@/types/agents";
@@ -46,6 +46,70 @@ function buildTimeline(
   );
 }
 
+function statusKey(event: AgentStatusEvent): string {
+  return `${event.timestamp}:${event.agent}:${event.status}:${event.phase}`;
+}
+
+function logKey(log: AgentLogEvent): string {
+  return `${log.timestamp}:${log.agent}:${log.level}:${log.message}`;
+}
+
+function mergeEvents(
+  prev: AgentStatusEvent[],
+  incoming: AgentStatusEvent[]
+): AgentStatusEvent[] {
+  const seen = new Set(prev.map(statusKey));
+  const merged = [...prev];
+  for (const event of incoming) {
+    const key = statusKey(event);
+    if (!seen.has(key)) {
+      seen.add(key);
+      merged.push(event);
+    }
+  }
+  return merged.sort(
+    (a, b) => new Date(a.timestamp).getTime() - new Date(b.timestamp).getTime()
+  );
+}
+
+function mergeLogs(prev: AgentLogEvent[], incoming: AgentLogEvent[]): AgentLogEvent[] {
+  const seen = new Set(prev.map(logKey));
+  const merged = [...prev];
+  for (const log of incoming) {
+    const key = logKey(log);
+    if (!seen.has(key)) {
+      seen.add(key);
+      merged.push(log);
+    }
+  }
+  return merged.sort(
+    (a, b) => new Date(a.timestamp).getTime() - new Date(b.timestamp).getTime()
+  );
+}
+
+function applyStatusEvent(
+  event: AgentStatusEvent,
+  setAgentStatuses: Dispatch<SetStateAction<AgentStatuses>>,
+  setAgentOutputs: Dispatch<SetStateAction<AgentOutputs>>,
+  setSelectedAgent: Dispatch<SetStateAction<AgentName | null>>,
+  setError: Dispatch<SetStateAction<string | null>>
+): void {
+  setAgentStatuses((prev) => ({ ...prev, [event.agent]: event.status }));
+
+  if (event.status === "done" && event.output !== undefined) {
+    setAgentOutputs((prev) => ({ ...prev, [event.agent]: event.output }));
+    setSelectedAgent(event.agent);
+  }
+
+  if (event.status === "running") {
+    setSelectedAgent(event.agent);
+  }
+
+  if (event.status === "error" && event.error) {
+    setError(event.error);
+  }
+}
+
 export function useReportStream(runId: string): UseReportStreamResult {
   const [agentStatuses, setAgentStatuses] = useState<AgentStatuses>(
     createInitialAgentStatuses()
@@ -59,8 +123,25 @@ export function useReportStream(runId: string): UseReportStreamResult {
   const [langsmithTraceUrl, setLangsmithTraceUrl] = useState<string | null>(null);
   const [demoMode, setDemoMode] = useState<boolean | null>(null);
   const [selectedAgent, setSelectedAgent] = useState<AgentName | null>(null);
+  const lastUpdateAtRef = useRef(Date.now());
+  const isCompleteRef = useRef(false);
+  const eventsRef = useRef<AgentStatusEvent[]>([]);
+  const logsRef = useRef<AgentLogEvent[]>([]);
+  const sourceRef = useRef<EventSource | null>(null);
 
   const timeline = useMemo(() => buildTimeline(events, logs), [events, logs]);
+
+  useEffect(() => {
+    eventsRef.current = events;
+  }, [events]);
+
+  useEffect(() => {
+    logsRef.current = logs;
+  }, [logs]);
+
+  const touchTimeline = useCallback(() => {
+    lastUpdateAtRef.current = Date.now();
+  }, []);
 
   const fetchReport = useCallback(async () => {
     const res = await fetch(`/api/report/${runId}`);
@@ -84,30 +165,84 @@ export function useReportStream(runId: string): UseReportStreamResult {
     if (typeof data.demo_mode === "boolean") setDemoMode(data.demo_mode);
   }, [runId]);
 
+  const pollRunState = useCallback(async () => {
+    const res = await fetch(`/api/report/${runId}`);
+    if (res.status === 202) {
+      const data = await res.json();
+      if (Array.isArray(data.events)) {
+        const incoming = data.events as AgentStatusEvent[];
+        const prevEvents = eventsRef.current;
+        const merged = mergeEvents(prevEvents, incoming);
+        if (merged.length > prevEvents.length) {
+          touchTimeline();
+          const prevKeys = new Set(prevEvents.map(statusKey));
+          for (const event of incoming) {
+            if (!prevKeys.has(statusKey(event))) {
+              applyStatusEvent(
+                event,
+                setAgentStatuses,
+                setAgentOutputs,
+                setSelectedAgent,
+                setError
+              );
+            }
+          }
+          setEvents(merged);
+        }
+      }
+      if (Array.isArray(data.logs)) {
+        const incoming = data.logs as AgentLogEvent[];
+        const prevLogs = logsRef.current;
+        const merged = mergeLogs(prevLogs, incoming);
+        if (merged.length > prevLogs.length) {
+          touchTimeline();
+          setLogs(merged);
+        }
+      }
+      return;
+    }
+    if (!res.ok) {
+      const data = await res.json();
+      throw new Error(data.error ?? "Failed to fetch report");
+    }
+    const data = await res.json();
+    setReport(data.report);
+    if (data.agent_statuses) setAgentStatuses(data.agent_statuses);
+    if (data.agent_outputs) setAgentOutputs(data.agent_outputs);
+    if (Array.isArray(data.events)) setEvents(data.events);
+    if (Array.isArray(data.logs)) setLogs(data.logs);
+    if (data.langsmith_trace_url) setLangsmithTraceUrl(data.langsmith_trace_url);
+    if (typeof data.demo_mode === "boolean") setDemoMode(data.demo_mode);
+    isCompleteRef.current = true;
+    setIsComplete(true);
+    touchTimeline();
+    sourceRef.current?.close();
+  }, [runId, touchTimeline]);
+
+  useEffect(() => {
+    isCompleteRef.current = isComplete;
+  }, [isComplete]);
+
   useEffect(() => {
     const source = new EventSource(`/api/report/${runId}/stream`);
+    sourceRef.current = source;
 
     source.addEventListener("agent_status", (e) => {
       const event = JSON.parse(e.data) as AgentStatusEvent;
+      touchTimeline();
       setEvents((prev) => [...prev, event]);
-      setAgentStatuses((prev) => ({ ...prev, [event.agent]: event.status }));
-
-      if (event.status === "done" && event.output !== undefined) {
-        setAgentOutputs((prev) => ({ ...prev, [event.agent]: event.output }));
-        setSelectedAgent(event.agent);
-      }
-
-      if (event.status === "running") {
-        setSelectedAgent(event.agent);
-      }
-
-      if (event.status === "error" && event.error) {
-        setError(event.error);
-      }
+      applyStatusEvent(
+        event,
+        setAgentStatuses,
+        setAgentOutputs,
+        setSelectedAgent,
+        setError
+      );
     });
 
     source.addEventListener("agent_log", (e) => {
       const log = JSON.parse(e.data) as AgentLogEvent;
+      touchTimeline();
       setLogs((prev) => [...prev, log]);
       if (log.level === "error") {
         setSelectedAgent(log.agent);
@@ -115,6 +250,7 @@ export function useReportStream(runId: string): UseReportStreamResult {
     });
 
     source.addEventListener("report_ready", () => {
+      isCompleteRef.current = true;
       setIsComplete(true);
       fetchReport().catch((err) =>
         setError(err instanceof Error ? err.message : "Failed to load report")
@@ -129,8 +265,20 @@ export function useReportStream(runId: string): UseReportStreamResult {
       }
     });
 
-    return () => source.close();
-  }, [runId, fetchReport]);
+    const pollFallback = setInterval(() => {
+      if (isCompleteRef.current) return;
+      if (Date.now() - lastUpdateAtRef.current < 3000) return;
+      pollRunState().catch((err) =>
+        setError(err instanceof Error ? err.message : "Poll failed")
+      );
+    }, 1000);
+
+    return () => {
+      clearInterval(pollFallback);
+      source.close();
+      sourceRef.current = null;
+    };
+  }, [runId, fetchReport, pollRunState, touchTimeline]);
 
   return {
     agentStatuses,

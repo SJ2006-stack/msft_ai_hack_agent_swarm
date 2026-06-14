@@ -27,6 +27,7 @@ export function buildAgentOutputZip(state: GTMReportState): Uint8Array {
     generated_at: state.report?.generated_at ?? null,
     agent_statuses: state.agent_statuses,
     errors: state.errors,
+    research_evidence: state.research_evidence ?? null,
   });
 
   return zipSync(files);

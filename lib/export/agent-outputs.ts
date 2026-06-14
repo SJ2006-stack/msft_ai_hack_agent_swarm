@@ -26,7 +26,11 @@ export function extractAgentOutput(
     case "market_mapper":
       return { agent: AGENT_LABELS.market_mapper, ...state.market_map };
     case "signal_hunter":
-      return { agent: AGENT_LABELS.signal_hunter, ...state.signals };
+      return {
+        agent: AGENT_LABELS.signal_hunter,
+        ...state.signals,
+        research_evidence: state.research_evidence?.signal_hunter ?? null,
+      };
     case "join_research":
       return {
         agent: AGENT_LABELS.join_research,
@@ -36,7 +40,11 @@ export function extractAgentOutput(
         },
       };
     case "prospect_discovery":
-      return { agent: AGENT_LABELS.prospect_discovery, ...state.prospects };
+      return {
+        agent: AGENT_LABELS.prospect_discovery,
+        ...state.prospects,
+        research_evidence: state.research_evidence?.prospect_discovery ?? null,
+      };
     case "decision_maker_finder":
       return { agent: AGENT_LABELS.decision_maker_finder, ...state.decision_makers };
     case "opportunity_scorer":

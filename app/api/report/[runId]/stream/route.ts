@@ -26,9 +26,12 @@ export async function GET(
 ) {
   const { runId } = await params;
 
+  let hasKV = false;
   try {
     const { env } = await getCloudflareContext({ async: true });
-    bindRunsKV(extractRunsKV(env));
+    const kv = extractRunsKV(env);
+    bindRunsKV(kv);
+    hasKV = kv !== null;
   } catch {
     bindRunsKV(null);
   }
@@ -68,7 +71,7 @@ export async function GET(
       await pushBuffered();
 
       const current = await getRun(runId);
-      if (current?.status === "done") {
+      if (current?.status === "done" && current.state?.report) {
         controller.enqueue(
           encoder.encode(formatSSE({ type: "report_ready", data: { run_id: runId } }))
         );
@@ -89,39 +92,32 @@ export async function GET(
         return;
       }
 
-      unsubscribe = subscribeToRun(runId, (event) => {
-        if (event.type === "status") {
-          controller.enqueue(
-            encoder.encode(formatSSE({ type: "agent_status", data: event.data }))
-          );
-          lastEventCount += 1;
-
-          if (event.data.agent === "report_assembler" && event.data.status === "done") {
+      if (!hasKV) {
+        unsubscribe = subscribeToRun(runId, (event) => {
+          if (event.type === "status") {
             controller.enqueue(
-              encoder.encode(formatSSE({ type: "report_ready", data: { run_id: runId } }))
+              encoder.encode(formatSSE({ type: "agent_status", data: event.data }))
             );
-            controller.close();
-            unsubscribe?.();
-            if (poll) clearInterval(poll);
-          }
+            lastEventCount += 1;
 
-          if (event.data.status === "error") {
+            if (event.data.status === "error") {
+              controller.enqueue(
+                encoder.encode(
+                  formatSSE({
+                    type: "error",
+                    data: { message: event.data.error ?? "Agent error" },
+                  })
+                )
+              );
+            }
+          } else {
             controller.enqueue(
-              encoder.encode(
-                formatSSE({
-                  type: "error",
-                  data: { message: event.data.error ?? "Agent error" },
-                })
-              )
+              encoder.encode(formatSSE({ type: "agent_log", data: event.data }))
             );
+            lastLogCount += 1;
           }
-        } else {
-          controller.enqueue(
-            encoder.encode(formatSSE({ type: "agent_log", data: event.data }))
-          );
-          lastLogCount += 1;
-        }
-      });
+        });
+      }
 
       poll = setInterval(async () => {
         const latest = await getRun(runId);
@@ -133,7 +129,7 @@ export async function GET(
 
         await pushBuffered();
 
-        if (latest.status === "done") {
+        if (latest.status === "done" && latest.state?.report) {
           controller.enqueue(
             encoder.encode(formatSSE({ type: "report_ready", data: { run_id: runId } }))
           );
@@ -155,7 +151,7 @@ export async function GET(
           controller.close();
           unsubscribe?.();
         }
-      }, 500);
+      }, 250);
     },
     cancel() {
       unsubscribe?.();

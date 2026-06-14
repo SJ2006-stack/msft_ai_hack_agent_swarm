@@ -18,6 +18,13 @@ import { FIXTURE_INPUT } from "@/lib/fixtures/demo-input";
 
 export { FIXTURE_INPUT };
 
+import type { SearchResult } from "@/lib/agents/tools/tavily";
+
+export type ResearchEvidence = {
+  query: string;
+  results: SearchResult[];
+};
+
 export type GTMReportState = {
   run_id: string;
   input: GTMInput;
@@ -30,6 +37,9 @@ export type GTMReportState = {
   opportunities?: z.infer<typeof OpportunityScorerOutputSchema>;
   outreach?: z.infer<typeof OutreachPlannerOutputSchema>;
   report?: GTMReport;
+  research_evidence?: Partial<
+    Record<"signal_hunter" | "prospect_discovery", ResearchEvidence>
+  >;
   agent_statuses: AgentStatuses;
   errors: Partial<Record<AgentName, string>>;
   langsmith_trace_url?: string;

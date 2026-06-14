@@ -39,6 +39,12 @@ export function truncate(text: string, max = 240): string {
   return `${text.slice(0, max)}…`;
 }
 
+export function formatError(error: z.ZodError): string {
+  return error.issues
+    .map((i) => `${i.path.join(".") || "root"}: ${i.message}`)
+    .join("; ");
+}
+
 export function parseJsonWithLog<T>(agent: AgentName, raw: string): T {
   try {
     const cleaned = raw.replace(/```json\n?|\n?```/g, "").trim();
@@ -65,9 +71,7 @@ export function parseSchemaWithLog<T>(
 ): T {
   const result = schema.safeParse(data);
   if (!result.success) {
-    const issues = result.error.issues
-      .map((i) => `${i.path.join(".") || "root"}: ${i.message}`)
-      .join("; ");
+    const issues = formatError(result.error);
     logAgent(agent, "error", `${label} validation failed`, issues);
     throw result.error;
   }

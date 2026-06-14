@@ -14,8 +14,8 @@
     "OPENROUTER_MODEL": "openrouter/free",
     "LANGCHAIN_TRACING_V2": "false",
     "LANGCHAIN_PROJECT": "prospect-swarm",
-    "MOCK_LLM": "true",
-    "MOCK_TOOLS": "true"
+    "MOCK_LLM": "false",
+    "MOCK_TOOLS": "false"
   },
   "secrets": {
     "required": ["OPENROUTER_API_KEY"]

@@ -4,7 +4,6 @@ import { getCloudflareContext } from "@opennextjs/cloudflare";
 import type { KVNamespace } from "@cloudflare/workers-types";
 import { GTMInputSchema } from "@/types/gtm";
 import { runSwarmGraph } from "@/lib/agents/graph";
-import { isMockLLM } from "@/lib/agents/tools/mock";
 import { createRun, updateRun, appendEvent, appendLog, bindRunsKV } from "@/lib/runs/store";
 import type { SwarmStreamEvent } from "@/lib/agents/events";
 
@@ -18,11 +17,6 @@ function extractRunsKV(env: unknown): KVNamespace | null {
   return null;
 }
 
-function isMockFromPlatformEnv(env: unknown): boolean {
-  const value = (env as Record<string, string | undefined>).MOCK_LLM;
-  return value === "true" || value === "1";
-}
-
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json();
@@ -30,20 +24,13 @@ export async function POST(request: NextRequest) {
     const runId = randomUUID();
 
     let ctx: { waitUntil: (p: Promise<unknown>) => void } | undefined;
-    let platformEnv: unknown;
     try {
       const cf = await getCloudflareContext({ async: true });
       ctx = cf.ctx;
-      platformEnv = cf.env;
       bindRunsKV(extractRunsKV(cf.env));
     } catch {
       bindRunsKV(null);
     }
-
-    const mockMode =
-      platformEnv !== undefined
-        ? isMockFromPlatformEnv(platformEnv)
-        : isMockLLM();
 
     await createRun(runId);
     await updateRun(runId, { status: "running" });
@@ -72,9 +59,7 @@ export async function POST(request: NextRequest) {
         });
       });
 
-    if (mockMode) {
-      await runPromise;
-    } else if (ctx?.waitUntil) {
+    if (ctx?.waitUntil) {
       ctx.waitUntil(runPromise);
     } else {
       void runPromise;

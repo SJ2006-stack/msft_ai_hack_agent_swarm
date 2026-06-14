@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import type { Prospect, OpportunityScore, DecisionMaker } from "@/types/gtm";
+import { CitationChipList } from "@/components/report/citation-chip";
 
 type Props = {
   prospects: Prospect[];
@@ -110,6 +111,8 @@ export function ProspectsReportSection({
                       <p className="text-neutral-300 leading-relaxed">{p.match_rationale}</p>
                     </div>
                   </div>
+
+                  <CitationChipList citations={p.citations} />
 
                   {opp && (
                     <div className="p-3 bg-neutral-900/50 border border-neutral-800 rounded-lg space-y-3">

@@ -56,6 +56,10 @@ const GTMStateAnnotation = Annotation.Root({
     reducer: (_l, r) => r ?? _l,
     default: () => undefined,
   }),
+  research_evidence: Annotation<GTMReportState["research_evidence"]>({
+    reducer: (left, right) => ({ ...left, ...right }),
+    default: () => undefined,
+  }),
   agent_statuses: Annotation<AgentStatuses>({
     reducer: (left, right) => ({ ...left, ...right }),
     default: createInitialAgentStatuses,

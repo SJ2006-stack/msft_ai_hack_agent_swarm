@@ -43,11 +43,29 @@ export const MarketMapperOutputSchema = z.object({
   adjacent_markets: z.array(MarketSegmentSchema),
 });
 
+export const CitationSchema = z.object({
+  url: z.string().url(),
+  title: z.string(),
+  snippet: z.string().optional(),
+});
+
 export const BuyingSignalSchema = z.object({
   signal_type: z.string(),
   description: z.string(),
   urgency: z.enum(["high", "medium", "low"]),
   source: z.string().optional(),
+  citations: z.array(CitationSchema).min(1),
+});
+
+/** LLM parse shape — linker attaches citations before final validation */
+export const BuyingSignalParseSchema = BuyingSignalSchema.omit({ citations: true }).extend({
+  citations: z.array(CitationSchema).optional(),
+  source_ids: z.array(z.number().int().positive()).optional(),
+});
+
+export const SignalHunterParseSchema = z.object({
+  market_signals: z.array(BuyingSignalParseSchema),
+  intent_indicators: z.array(z.string()),
 });
 
 export const SignalHunterOutputSchema = z.object({
@@ -62,6 +80,17 @@ export const ProspectSchema = z.object({
   fit_score: z.number().min(0).max(100),
   match_rationale: z.string(),
   icp_match: z.string(),
+  citations: z.array(CitationSchema).min(1),
+});
+
+/** LLM parse shape — linker attaches citations before final validation */
+export const ProspectParseSchema = ProspectSchema.omit({ citations: true }).extend({
+  citations: z.array(CitationSchema).optional(),
+  source_ids: z.array(z.number().int().positive()).optional(),
+});
+
+export const ProspectDiscoveryParseSchema = z.object({
+  prospects: z.array(ProspectParseSchema),
 });
 
 export const ProspectDiscoveryOutputSchema = z.object({
@@ -130,6 +159,7 @@ export type GTMReport = z.infer<typeof GTMReportSchema>;
 export type ICP = z.infer<typeof ICPSchema>;
 export type Persona = z.infer<typeof PersonaSchema>;
 export type MarketSegment = z.infer<typeof MarketSegmentSchema>;
+export type Citation = z.infer<typeof CitationSchema>;
 export type BuyingSignal = z.infer<typeof BuyingSignalSchema>;
 export type Prospect = z.infer<typeof ProspectSchema>;
 export type DecisionMaker = z.infer<typeof DecisionMakerSchema>;

@@ -9,6 +9,8 @@ import {
   type AgentStatuses,
 } from "@/types/agents";
 import { cn } from "@/lib/utils";
+import { CitationChip } from "@/components/report/citation-chip";
+import type { Citation } from "@/types/gtm";
 
 type Props = {
   agentStatuses: AgentStatuses;
@@ -39,30 +41,47 @@ function OutputPreview({ agent, output }: { agent: AgentName; output: unknown })
 
   if (agent === "prospect_discovery" && Array.isArray(data.prospects)) {
     return (
-      <ul className="space-y-2">
-        {(data.prospects as Array<{ company_name: string; fit_score: number; industry: string }>).map(
-          (p) => (
-            <li
-              key={p.company_name}
-              className="flex justify-between text-sm border-b border-neutral-800 pb-2"
-            >
+      <ul className="space-y-3">
+        {(
+          data.prospects as Array<{
+            company_name: string;
+            fit_score: number;
+            industry: string;
+            citations?: Citation[];
+          }>
+        ).map((p) => (
+          <li
+            key={p.company_name}
+            className="space-y-2 border-b border-neutral-800 pb-3"
+          >
+            <div className="flex justify-between text-sm">
               <span className="font-medium text-neutral-200">{p.company_name}</span>
               <span className="text-neutral-400">
                 {p.industry} · {p.fit_score}% fit
               </span>
-            </li>
-          )
-        )}
+            </div>
+            {p.citations && p.citations.length > 0 && (
+              <CitationChip citations={p.citations} />
+            )}
+          </li>
+        ))}
       </ul>
     );
   }
 
   if (agent === "signal_hunter" && Array.isArray(data.market_signals)) {
     return (
-      <ul className="space-y-2">
-        {(data.market_signals as Array<{ signal_type: string; urgency: string; description: string }>).map(
-          (s, i) => (
-            <li key={i} className="text-sm">
+      <ul className="space-y-3">
+        {(
+          data.market_signals as Array<{
+            signal_type: string;
+            urgency: string;
+            description: string;
+            citations?: Citation[];
+          }>
+        ).map((s, i) => (
+          <li key={i} className="space-y-2 text-sm">
+            <div>
               <span
                 className={cn(
                   "inline-block px-1.5 py-0.5 rounded text-xs mr-2 border",
@@ -77,9 +96,12 @@ function OutputPreview({ agent, output }: { agent: AgentName; output: unknown })
               </span>
               <span className="font-medium text-neutral-200">{s.signal_type}</span>
               <p className="text-neutral-400 mt-0.5">{s.description}</p>
-            </li>
-          )
-        )}
+            </div>
+            {s.citations && s.citations.length > 0 && (
+              <CitationChip citations={s.citations} />
+            )}
+          </li>
+        ))}
       </ul>
     );
   }

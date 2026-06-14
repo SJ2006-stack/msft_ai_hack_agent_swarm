@@ -83,27 +83,62 @@ export const FIXTURE_SIGNALS = {
       description: "Series B raise of $25M to expand sales team",
       urgency: "high" as const,
       source: "Crunchbase",
+      citations: [
+        {
+          url: "https://example.com/saas-hiring",
+          title: "Top SaaS Companies Hiring SDRs 2026",
+          snippet: "Series B SaaS companies are aggressively hiring SDR teams...",
+        },
+      ],
     },
     {
       signal_type: "Hiring",
       description: "Posted 5 SDR roles in last 30 days",
       urgency: "high" as const,
       source: "LinkedIn Jobs",
+      citations: [
+        {
+          url: "https://example.com/saas-hiring",
+          title: "Top SaaS Companies Hiring SDRs 2026",
+          snippet: "Series B SaaS companies are aggressively hiring SDR teams...",
+        },
+      ],
     },
     {
       signal_type: "Expansion",
       description: "Opening EMEA office — need local prospecting",
       urgency: "medium" as const,
+      citations: [
+        {
+          url: "https://example.com/market-report",
+          title: "B2B Sales Intelligence Market Report",
+          snippet: "The sales intelligence market is growing 25% YoY...",
+        },
+      ],
     },
     {
       signal_type: "Product Launch",
       description: "New enterprise tier launched — upsell motion needed",
       urgency: "medium" as const,
+      citations: [
+        {
+          url: "https://example.com/revops-trends",
+          title: "RevOps Tool Stack Trends",
+          snippet: "Revenue operations teams are consolidating GTM tools...",
+        },
+      ],
     },
     {
       signal_type: "Leadership Change",
       description: "New CRO hired from competitor",
       urgency: "high" as const,
+      citations: [
+        {
+          url: "https://example.com/market-report",
+          title: "B2B Sales Intelligence Market Report",
+          snippet: "The sales intelligence market is growing 25% YoY...",
+        },
+      ],
     },
   ],
   intent_indicators: [
@@ -122,6 +157,13 @@ export const FIXTURE_PROSPECTS = {
       fit_score: 92,
       match_rationale: "Series B SaaS with growing SDR team, perfect ICP match",
       icp_match: "Mid-Market SaaS Sales Leaders",
+      citations: [
+        {
+          url: "https://example.com/saas-hiring",
+          title: "Top SaaS Companies Hiring SDRs 2026",
+          snippet: "Series B SaaS companies are aggressively hiring SDR teams...",
+        },
+      ],
     },
     {
       company_name: "CloudSecure Inc",
@@ -130,6 +172,13 @@ export const FIXTURE_PROSPECTS = {
       fit_score: 87,
       match_rationale: "Expanding sales org, recent funding round",
       icp_match: "Mid-Market SaaS Sales Leaders",
+      citations: [
+        {
+          url: "https://example.com/market-report",
+          title: "B2B Sales Intelligence Market Report",
+          snippet: "The sales intelligence market is growing 25% YoY...",
+        },
+      ],
     },
     {
       company_name: "PayStream",
@@ -138,6 +187,13 @@ export const FIXTURE_PROSPECTS = {
       fit_score: 85,
       match_rationale: "RevOps-led GTM, actively hiring SDRs",
       icp_match: "Revenue Operations Teams",
+      citations: [
+        {
+          url: "https://example.com/revops-trends",
+          title: "RevOps Tool Stack Trends",
+          snippet: "Revenue operations teams are consolidating GTM tools...",
+        },
+      ],
     },
     {
       company_name: "TalentHub",
@@ -146,6 +202,13 @@ export const FIXTURE_PROSPECTS = {
       fit_score: 78,
       match_rationale: "New CRO, rebuilding outbound motion",
       icp_match: "Mid-Market SaaS Sales Leaders",
+      citations: [
+        {
+          url: "https://example.com/saas-hiring",
+          title: "Top SaaS Companies Hiring SDRs 2026",
+          snippet: "Series B SaaS companies are aggressively hiring SDR teams...",
+        },
+      ],
     },
     {
       company_name: "DevOps Pro",
@@ -154,6 +217,13 @@ export const FIXTURE_PROSPECTS = {
       fit_score: 75,
       match_rationale: "Product-led growth adding sales team",
       icp_match: "Mid-Market SaaS Sales Leaders",
+      citations: [
+        {
+          url: "https://example.com/market-report",
+          title: "B2B Sales Intelligence Market Report",
+          snippet: "The sales intelligence market is growing 25% YoY...",
+        },
+      ],
     },
   ],
 };

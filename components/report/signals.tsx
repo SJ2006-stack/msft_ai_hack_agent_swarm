@@ -1,4 +1,5 @@
 import type { BuyingSignal } from "@/types/gtm";
+import { CitationChipList } from "@/components/report/citation-chip";
 
 type Props = {
   signals: BuyingSignal[];
@@ -11,8 +12,11 @@ export function SignalsReportSection({ signals, intentIndicators }: Props) {
       <h2 className="text-xl font-semibold text-white">Buying Signals</h2>
       <div className="grid gap-3">
         {signals.map((s, i) => (
-          <div key={i} className="p-4 border border-neutral-800 bg-neutral-900/30 rounded-lg flex justify-between items-start">
-            <div>
+          <div
+            key={i}
+            className="flex items-start justify-between border border-neutral-800 bg-neutral-900/30 p-4 rounded-lg"
+          >
+            <div className="min-w-0 flex-1 space-y-2">
               <span className="text-xs font-semibold uppercase text-neutral-400 tracking-wide">
                 {s.signal_type}
               </span>
@@ -20,9 +24,10 @@ export function SignalsReportSection({ signals, intentIndicators }: Props) {
               {s.source && (
                 <p className="text-xs text-neutral-500 mt-1">Source: {s.source}</p>
               )}
+              <CitationChipList citations={s.citations} />
             </div>
             <span
-              className={`text-xs px-2 py-1 rounded border capitalize ${
+              className={`text-xs px-2 py-1 rounded border capitalize shrink-0 ml-3 ${
                 s.urgency === "high"
                   ? "bg-red-950/40 text-red-400 border-red-900/50"
                   : s.urgency === "medium"
