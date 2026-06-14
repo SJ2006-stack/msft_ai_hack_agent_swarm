@@ -5,11 +5,22 @@ import type { AgentLogEvent, AgentStatusEvent } from "@/lib/agents/events";
 import type { AgentOutputs } from "@/lib/export/agent-outputs";
 import type { AgentStatuses } from "@/types/agents";
 import { AGENT_NAMES, createInitialAgentStatuses, type AgentName } from "@/types/agents";
-import type { GTMReport } from "@/types/gtm";
+import type { ResearchEvidence } from "@/lib/agents/state";
+import type { GTMInput, GTMReport } from "@/types/gtm";
 
 export type TimelineEntry =
   | { kind: "status"; timestamp: string; data: AgentStatusEvent }
   | { kind: "log"; timestamp: string; data: AgentLogEvent };
+
+type RunResearchEvidence = Partial<
+  Record<"signal_hunter" | "prospect_discovery", ResearchEvidence>
+>;
+
+type RunContextPayload = {
+  input?: GTMInput;
+  website_content?: string | null;
+  research_evidence?: RunResearchEvidence | null;
+};
 
 type UseReportStreamResult = {
   agentStatuses: AgentStatuses;
@@ -18,6 +29,9 @@ type UseReportStreamResult = {
   logs: AgentLogEvent[];
   timeline: TimelineEntry[];
   report: GTMReport | null;
+  input: GTMInput | null;
+  websiteContent: string | null;
+  researchEvidence: RunResearchEvidence | null;
   isComplete: boolean;
   error: string | null;
   langsmithTraceUrl: string | null;
@@ -25,6 +39,21 @@ type UseReportStreamResult = {
   selectedAgent: AgentName | null;
   setSelectedAgent: (agent: AgentName) => void;
 };
+
+function hydrateRunContext(
+  data: RunContextPayload,
+  setInput: Dispatch<SetStateAction<GTMInput | null>>,
+  setWebsiteContent: Dispatch<SetStateAction<string | null>>,
+  setResearchEvidence: Dispatch<SetStateAction<RunResearchEvidence | null>>
+): void {
+  if (data.input) setInput(data.input);
+  if ("website_content" in data) {
+    setWebsiteContent(data.website_content ?? null);
+  }
+  if ("research_evidence" in data) {
+    setResearchEvidence(data.research_evidence ?? null);
+  }
+}
 
 function buildTimeline(
   events: AgentStatusEvent[],
@@ -118,6 +147,10 @@ export function useReportStream(runId: string): UseReportStreamResult {
   const [events, setEvents] = useState<AgentStatusEvent[]>([]);
   const [logs, setLogs] = useState<AgentLogEvent[]>([]);
   const [report, setReport] = useState<GTMReport | null>(null);
+  const [input, setInput] = useState<GTMInput | null>(null);
+  const [websiteContent, setWebsiteContent] = useState<string | null>(null);
+  const [researchEvidence, setResearchEvidence] =
+    useState<RunResearchEvidence | null>(null);
   const [isComplete, setIsComplete] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [langsmithTraceUrl, setLangsmithTraceUrl] = useState<string | null>(null);
@@ -147,6 +180,7 @@ export function useReportStream(runId: string): UseReportStreamResult {
     const res = await fetch(`/api/report/${runId}`);
     if (res.status === 202) {
       const data = await res.json();
+      hydrateRunContext(data, setInput, setWebsiteContent, setResearchEvidence);
       if (Array.isArray(data.events)) setEvents(data.events);
       if (Array.isArray(data.logs)) setLogs(data.logs);
       return;
@@ -157,6 +191,7 @@ export function useReportStream(runId: string): UseReportStreamResult {
     }
     const data = await res.json();
     setReport(data.report);
+    hydrateRunContext(data, setInput, setWebsiteContent, setResearchEvidence);
     if (data.agent_statuses) setAgentStatuses(data.agent_statuses);
     if (data.agent_outputs) setAgentOutputs(data.agent_outputs);
     if (Array.isArray(data.events)) setEvents(data.events);
@@ -169,6 +204,7 @@ export function useReportStream(runId: string): UseReportStreamResult {
     const res = await fetch(`/api/report/${runId}`);
     if (res.status === 202) {
       const data = await res.json();
+      hydrateRunContext(data, setInput, setWebsiteContent, setResearchEvidence);
       if (Array.isArray(data.events)) {
         const incoming = data.events as AgentStatusEvent[];
         const prevEvents = eventsRef.current;
@@ -207,6 +243,7 @@ export function useReportStream(runId: string): UseReportStreamResult {
     }
     const data = await res.json();
     setReport(data.report);
+    hydrateRunContext(data, setInput, setWebsiteContent, setResearchEvidence);
     if (data.agent_statuses) setAgentStatuses(data.agent_statuses);
     if (data.agent_outputs) setAgentOutputs(data.agent_outputs);
     if (Array.isArray(data.events)) setEvents(data.events);
@@ -287,6 +324,9 @@ export function useReportStream(runId: string): UseReportStreamResult {
     logs,
     timeline,
     report,
+    input,
+    websiteContent,
+    researchEvidence,
     isComplete,
     error,
     langsmithTraceUrl,

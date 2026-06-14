@@ -97,7 +97,7 @@ export function AgentActivityLog({ timeline, selectedAgent, onSelectAgent }: Pro
                 type="button"
                 onClick={() => onSelectAgent(event.agent)}
                 className={cn(
-                  "w-full text-left rounded-none px-2 py-1.5 hover:bg-neutral-100 transition-colors border border-transparent",
+                  "log-entry-reveal w-full text-left rounded-none px-2 py-1.5 hover:bg-neutral-100 transition-colors border border-transparent",
                   isSelected
                     ? "bg-[#FCD116]/20 border-black font-bold"
                     : "text-[#0A0A0A]",
@@ -129,7 +129,7 @@ export function AgentActivityLog({ timeline, selectedAgent, onSelectAgent }: Pro
               type="button"
               onClick={() => onSelectAgent(log.agent)}
               className={cn(
-                "w-full text-left rounded-none px-2 py-1.5 hover:bg-neutral-100 transition-colors border border-transparent",
+                "log-entry-reveal w-full text-left rounded-none px-2 py-1.5 hover:bg-neutral-100 transition-colors border border-transparent",
                 isSelected
                   ? "bg-[#FCD116]/20 border-black font-bold"
                   : "text-[#0A0A0A]"

@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import { Syne, Space_Grotesk } from "next/font/google";
+import { ToastProvider } from "@/components/ui/toast";
 import "./globals.css";
 
 const syne = Syne({
@@ -27,7 +28,7 @@ export default function RootLayout({
   return (
     <html lang="en" className={`${syne.variable} ${spaceGrotesk.variable}`}>
       <body className="min-h-screen bg-[#0A0A0A] text-[#0A0A0A] antialiased selection:bg-[#FCD116] selection:text-[#0A0A0A] overflow-x-hidden">
-        {children}
+        <ToastProvider>{children}</ToastProvider>
       </body>
     </html>
   );

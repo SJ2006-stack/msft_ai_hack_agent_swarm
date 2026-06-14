@@ -232,4 +232,155 @@ h1, h2, h3, h4, h5, h6 {
   animation-play-state: paused;
 }
 
+.animate-marquee-container-slow {
+  display: flex;
+  width: max-content;
+  animation: marquee-scroll 70s linear infinite;
+}
+
+.animate-marquee-container-fast {
+  display: flex;
+  width: max-content;
+  animation: marquee-scroll 28s linear infinite;
+}
+
+/* Scroll-triggered fade-up reveal */
+.animate-on-scroll {
+  opacity: 0;
+  transform: translateY(28px);
+  transition:
+    opacity 0.65s cubic-bezier(0.22, 1, 0.36, 1),
+    transform 0.65s cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+.animate-on-scroll.is-visible {
+  opacity: 1;
+  transform: translateY(0);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .animate-on-scroll {
+    opacity: 1;
+    transform: none;
+    transition: none;
+  }
+
+  .animate-marquee-container,
+  .animate-marquee-container-slow,
+  .animate-marquee-container-fast {
+    animation: none;
+  }
+
+  .mesh-blob {
+    animation: none !important;
+  }
+
+  .chat-bubble-reveal {
+    opacity: 1 !important;
+    transform: none !important;
+    transition: none !important;
+  }
+}
+
+/* Staggered chat bubble reveal */
+.chat-bubble-reveal {
+  opacity: 0;
+  transform: translateY(16px) scale(0.98);
+  transition:
+    opacity 0.45s cubic-bezier(0.22, 1, 0.36, 1),
+    transform 0.45s cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+.chat-bubble-reveal.is-visible {
+  opacity: 1;
+  transform: translateY(0) scale(1);
+}
+
+/* Brutalist mesh / aurora blobs */
+.mesh-blob {
+  position: absolute;
+  border-radius: 50%;
+  filter: blur(60px);
+  opacity: 0.45;
+  mix-blend-mode: multiply;
+}
+
+.mesh-blob-1 {
+  width: 55%;
+  height: 55%;
+  top: -15%;
+  left: -10%;
+  background: radial-gradient(circle, rgba(0, 0, 0, 0.18) 0%, transparent 70%);
+  animation: mesh-drift-1 14s ease-in-out infinite alternate;
+}
+
+.mesh-blob-2 {
+  width: 45%;
+  height: 45%;
+  top: 20%;
+  right: -5%;
+  background: radial-gradient(circle, rgba(252, 209, 22, 0.55) 0%, transparent 70%);
+  animation: mesh-drift-2 18s ease-in-out infinite alternate;
+}
+
+.mesh-blob-3 {
+  width: 40%;
+  height: 40%;
+  bottom: -10%;
+  left: 25%;
+  background: radial-gradient(circle, rgba(0, 0, 0, 0.12) 0%, transparent 70%);
+  animation: mesh-drift-3 16s ease-in-out infinite alternate;
+}
+
+.mesh-blob-4 {
+  width: 35%;
+  height: 35%;
+  top: 40%;
+  left: 40%;
+  background: radial-gradient(circle, rgba(252, 209, 22, 0.35) 0%, transparent 70%);
+  animation: mesh-drift-2 20s ease-in-out infinite alternate-reverse;
+}
+
+@keyframes mesh-drift-1 {
+  0% {
+    transform: translate(0, 0) scale(1);
+  }
+  100% {
+    transform: translate(8%, 6%) scale(1.08);
+  }
+}
+
+@keyframes mesh-drift-2 {
+  0% {
+    transform: translate(0, 0) scale(1);
+  }
+  100% {
+    transform: translate(-6%, 8%) scale(1.12);
+  }
+}
+
+@keyframes mesh-drift-3 {
+  0% {
+    transform: translate(0, 0) scale(1);
+  }
+  100% {
+    transform: translate(5%, -5%) scale(1.06);
+  }
+}
+
+/* Activity log entry stagger */
+.log-entry-reveal {
+  animation: log-entry-in 0.35s cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+
+@keyframes log-entry-in {
+  from {
+    opacity: 0;
+    transform: translateX(-8px);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(0);
+  }
+}
 

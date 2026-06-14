@@ -36,19 +36,21 @@ const GRAPH_NODES: { id: AgentName; x: number; y: number }[] = [
   { id: "report_assembler", x: 400, y: 860 },
 ];
 
+const EDGE_STYLE = { stroke: "#FCD116", strokeWidth: 3 } as const;
+
 const GRAPH_EDGES: Edge[] = [
-  { id: "e1", source: "input_processor", target: "gtm_strategist", animated: true, type: "straight", style: { stroke: "#ffffff", strokeWidth: 3 } },
-  { id: "e2", source: "gtm_strategist", target: "market_mapper", animated: true, type: "straight", style: { stroke: "#ffffff", strokeWidth: 3 } },
-  { id: "e3", source: "gtm_strategist", target: "signal_hunter", animated: true, type: "straight", style: { stroke: "#ffffff", strokeWidth: 3 } },
-  { id: "e4", source: "market_mapper", target: "join_research", type: "straight", style: { stroke: "#ffffff", strokeWidth: 3 } },
-  { id: "e5", source: "signal_hunter", target: "join_research", type: "straight", style: { stroke: "#ffffff", strokeWidth: 3 } },
-  { id: "e6", source: "join_research", target: "prospect_discovery", animated: true, type: "straight", style: { stroke: "#ffffff", strokeWidth: 3 } },
-  { id: "e7", source: "prospect_discovery", target: "decision_maker_finder", animated: true, type: "straight", style: { stroke: "#ffffff", strokeWidth: 3 } },
-  { id: "e8", source: "prospect_discovery", target: "opportunity_scorer", animated: true, type: "straight", style: { stroke: "#ffffff", strokeWidth: 3 } },
-  { id: "e9", source: "decision_maker_finder", target: "join_qualify", type: "straight", style: { stroke: "#ffffff", strokeWidth: 3 } },
-  { id: "e10", source: "opportunity_scorer", target: "join_qualify", type: "straight", style: { stroke: "#ffffff", strokeWidth: 3 } },
-  { id: "e11", source: "join_qualify", target: "outreach_planner", animated: true, type: "straight", style: { stroke: "#ffffff", strokeWidth: 3 } },
-  { id: "e12", source: "outreach_planner", target: "report_assembler", animated: true, type: "straight", style: { stroke: "#ffffff", strokeWidth: 3 } },
+  { id: "e1", source: "input_processor", target: "gtm_strategist", animated: true, type: "straight", style: EDGE_STYLE },
+  { id: "e2", source: "gtm_strategist", target: "market_mapper", animated: true, type: "straight", style: EDGE_STYLE },
+  { id: "e3", source: "gtm_strategist", target: "signal_hunter", animated: true, type: "straight", style: EDGE_STYLE },
+  { id: "e4", source: "market_mapper", target: "join_research", type: "straight", style: EDGE_STYLE },
+  { id: "e5", source: "signal_hunter", target: "join_research", type: "straight", style: EDGE_STYLE },
+  { id: "e6", source: "join_research", target: "prospect_discovery", animated: true, type: "straight", style: EDGE_STYLE },
+  { id: "e7", source: "prospect_discovery", target: "decision_maker_finder", animated: true, type: "straight", style: EDGE_STYLE },
+  { id: "e8", source: "prospect_discovery", target: "opportunity_scorer", animated: true, type: "straight", style: EDGE_STYLE },
+  { id: "e9", source: "decision_maker_finder", target: "join_qualify", type: "straight", style: EDGE_STYLE },
+  { id: "e10", source: "opportunity_scorer", target: "join_qualify", type: "straight", style: EDGE_STYLE },
+  { id: "e11", source: "join_qualify", target: "outreach_planner", animated: true, type: "straight", style: EDGE_STYLE },
+  { id: "e12", source: "outreach_planner", target: "report_assembler", animated: true, type: "straight", style: EDGE_STYLE },
 ];
 
 export function AgentFlowGraph({
